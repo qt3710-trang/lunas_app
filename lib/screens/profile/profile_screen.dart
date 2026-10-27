@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
+import 'ai_suggest_screen.dart';   // BÀI 7B
 import 'profile_models.dart';
 import 'profile_service.dart';
+import 'profile_sheets.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,12 +15,13 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final _service = ProfileService.instance;  // viết tắt cho gọn
+  final _service = ProfileService.instance;
 
   UserProfile? _profile;
-  List<SavedStyle> _saved = [];   // MỚI: danh sách mẫu đã lưu
+  List<SavedStyle> _saved = [];
+  List<Appointment> _appointments = [];
   bool _loading = true;
-  int _tab = 0;                   // 0 = Mẫu đã lưu, 1 = Lịch hẹn
+  int _tab = 0;                           // 0 = Mẫu đã lưu, 1 = Lịch hẹn
 
   @override
   void initState() {
@@ -28,32 +31,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _load() async {
     final profile = await _service.getProfile();
-    final saved = await _service.getSavedStyles();   // MỚI
+    final saved = await _service.getSavedStyles();
+    final appointments = await _service.getAppointments();
     if (!mounted) return;
     setState(() {
       _profile = profile;
       _saved = saved;
+      _appointments = appointments;
       _loading = false;
     });
   }
 
-  /// Hiện một thông báo nhỏ ở cuối màn hình
   void _toast(String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  // ================= HÀNH ĐỘNG (MỚI) =================
+  // ================= HÀNH ĐỘNG =================
 
-  /// Bấm tim -> bỏ lưu mẫu
+  /// Lưu hồ sơ sau khi sửa. [updated] = null nghĩa là người dùng đã hủy.
+  Future<void> _saveProfile(UserProfile? updated, String message) async {
+    if (updated == null) return;
+    setState(() => _profile = updated);
+    await _service.updateProfile(updated);
+    _toast(message);
+  }
+
+  /// BÀI 7B: mở màn AI gợi ý. Quay về thì tải lại "Mẫu đã lưu".
+  Future<void> _openAi() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => AiSuggestScreen(profile: _profile!)),
+    );
+    final saved = await _service.getSavedStyles();
+    if (!mounted) return;
+    setState(() => _saved = saved);
+  }
+
   Future<void> _unsave(SavedStyle style) async {
-    setState(() {
-      _saved.removeWhere((s) => s.id == style.id); // xóa trên màn hình ngay
-    });
-    await _service.removeSavedStyle(style.id);    // rồi báo service
+    setState(() => _saved.removeWhere((s) => s.id == style.id));
+    await _service.removeSavedStyle(style.id);
     _toast('Đã bỏ lưu "${style.name}"');
   }
 
-  /// Bật / tắt công tắc "Báo mẫu mới mỗi tuần"
   Future<void> _toggleWeekly(bool on) async {
     final updated = _profile!.copyWith(weeklyNotify: on);
     setState(() => _profile = updated);
@@ -61,7 +79,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _toast(on ? 'Sẽ báo mẫu mới vào sáng thứ hai' : 'Đã tắt báo mẫu mới');
   }
 
-  /// Đăng xuất: hỏi lại cho chắc rồi về màn Đăng nhập
   Future<void> _logout() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -80,10 +97,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
-    if (ok != true) return;          // bấm Hủy thì thôi
+    if (ok != true) return;
     await _service.logout();
     if (!mounted) return;
-    context.go('/login');            // về màn Đăng nhập
+    context.go('/login');
+  }
+
+  Future<void> _cancelAppointment(Appointment a) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Hủy lịch hẹn?'),
+        content: Text('Bạn chắc chắn muốn hủy lịch ${a.code}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Không'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Hủy lịch', style: TextStyle(color: AppColors.pink)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await _service.cancelAppointment(a.id);
+    final list = await _service.getAppointments();
+    if (!mounted) return;
+    setState(() => _appointments = list);
+    _toast('Đã hủy lịch hẹn ${a.code}');
   }
 
   // ================= GIAO DIỆN =================
@@ -111,15 +154,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  /// Thẻ đầu trang: ảnh đại diện + tên + kiểu tóc yêu thích
-  Widget _buildHeader(UserProfile profile) {
+  /// Thẻ trắng bo góc, dùng lại nhiều chỗ
+  Widget _card({required Widget child, EdgeInsets padding = const EdgeInsets.all(16)}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: padding,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border),
       ),
+      child: child,
+    );
+  }
+
+  /// Tiêu đề mục có biểu tượng phía trước
+  Widget _sectionTitle(String text, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.pink),
+        const SizedBox(width: 8),
+        Text(text, style: AppTheme.titleFont(size: 18)),
+      ],
+    );
+  }
+
+  /// Ảnh kiểu tóc. Chưa có file ảnh -> hiện khung hồng có biểu tượng.
+  Widget _buildPhoto(String path, {double? width, double height = 130}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: Image.asset(
+        path,
+        width: width ?? double.infinity,
+        height: height,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(
+          width: width ?? double.infinity,
+          height: height,
+          color: const Color(0xFFF6E3E8),
+          child: const Center(
+            child: Icon(Icons.face_retouching_natural, color: AppColors.teal, size: 28),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(UserProfile profile) {
+    return _card(
       child: Row(
         children: [
           CircleAvatar(
@@ -145,7 +227,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           IconButton(
-            onPressed: () {},  // bài sau: mở hộp sửa tên
+            onPressed: () async => _saveProfile(
+              await showEditNameDialog(context, profile),
+              'Đã đổi tên',
+            ),
             icon: const Icon(Icons.settings_outlined),
           ),
         ],
@@ -153,7 +238,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  /// Thanh 2 nút chuyển tab
   Widget _buildTabSwitcher() {
     return Container(
       padding: const EdgeInsets.all(4),
@@ -195,23 +279,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ================= TAB "MẪU ĐÃ LƯU" (MỚI) =================
+  // ================= TAB "MẪU ĐÃ LƯU" =================
 
   Widget _buildSavedTab(UserProfile profile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Tiêu đề mục
-        Row(
-          children: [
-            const Icon(Icons.auto_awesome, size: 18, color: AppColors.pink),
-            const SizedBox(width: 8),
-            Text('Mẫu tóc đã lưu', style: AppTheme.titleFont(size: 18)),
-          ],
-        ),
+        _sectionTitle('Mẫu tóc đã lưu', Icons.auto_awesome),
         const SizedBox(height: 12),
-
-        // 3 ô mẫu tóc (hoặc thông báo nếu chưa lưu mẫu nào)
         if (_saved.isEmpty)
           const Text(
             'Bạn chưa lưu mẫu nào. Bấm hình trái tim ở trang Mẫu để lưu nhé.',
@@ -227,14 +302,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ],
           ),
-
         const SizedBox(height: 20),
         _buildMenu(profile),
+        const SizedBox(height: 20),   // BÀI 7B
+        _buildAiButton(),             // BÀI 7B
       ],
     );
   }
 
-  /// Một ô mẫu tóc: ảnh + tim + tên
   Widget _buildStyleTile(SavedStyle style) {
     return Container(
       decoration: BoxDecoration(
@@ -245,7 +320,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Stack = xếp chồng: ảnh ở dưới, nút tim đè lên góc phải
           Stack(
             children: [
               _buildPhoto(style.image),
@@ -271,7 +345,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Text(
               style.name,
               maxLines: 1,
-              overflow: TextOverflow.ellipsis, // dài quá thì hiện "..."
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
           ),
@@ -280,48 +354,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  /// Ảnh kiểu tóc. Chưa có file ảnh -> hiện khung hồng có biểu tượng.
-  Widget _buildPhoto(String path) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: Image.asset(
-        path,
-        height: 130,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => Container(
-          height: 130,
-          color: const Color(0xFFF6E3E8),
-          child: const Center(
-            child: Icon(Icons.face_retouching_natural, color: AppColors.teal, size: 32),
+  /// BÀI 7B: nút lớn màu xanh "AI GỢI Ý KIỂU TÓC"
+  Widget _buildAiButton() {
+    return Material(
+      color: AppColors.teal,
+      borderRadius: BorderRadius.circular(30),
+      child: InkWell(
+        onTap: _openAi,
+        borderRadius: BorderRadius.circular(30),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+          child: Row(
+            children: [
+              Icon(Icons.auto_awesome, color: Colors.white),
+              Expanded(
+                child: Text(
+                  'AI GỢI Ý KIỂU TÓC',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ),
+              Icon(Icons.arrow_forward, color: Colors.white),
+            ],
           ),
         ),
       ),
     );
   }
 
-  /// Khung menu: Dáng mặt, Phong cách, Báo mẫu mới, Đăng xuất
   Widget _buildMenu(UserProfile profile) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
+    return _card(
+      padding: EdgeInsets.zero,
       child: Column(
         children: [
           _buildMenuRow(
             icon: Icons.face_outlined,
             title: 'Dáng mặt và tông da',
             subtitle: '${profile.faceShape} · ${profile.skinTone}',
-            onTap: () => _toast('Bài sau sẽ làm phần sửa dáng mặt'),
+            onTap: () async => _saveProfile(
+              await showFaceSkinSheet(context, profile),
+              'Đã lưu dáng mặt và màu da',
+            ),
           ),
           const Divider(height: 1),
           _buildMenuRow(
             icon: Icons.star_border,
             title: 'Phong cách yêu thích',
             subtitle: profile.styleTags.join(', '),
-            onTap: () => _toast('Bài sau sẽ làm phần sửa phong cách'),
+            onTap: () async => _saveProfile(
+              await showStyleSheet(context, profile),
+              'Đã lưu phong cách yêu thích',
+            ),
           ),
           const Divider(height: 1),
           _buildMenuRow(
@@ -347,7 +434,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  /// Một dòng trong menu
   Widget _buildMenuRow({
     required IconData icon,
     required String title,
@@ -373,8 +459,235 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ================= TAB "LỊCH HẸN" =================
 
-  /// Bài 6 sẽ làm thật
   Widget _buildAppointmentsTab() {
-    return const Text('Đây là tab Lịch hẹn');
+    final upcoming = _appointments.where((a) => a.isUpcoming).toList();
+    final history = _appointments.where((a) => !a.isUpcoming).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('Lịch hẹn sắp tới', Icons.auto_awesome),
+        const SizedBox(height: 12),
+        if (upcoming.isEmpty)
+          _card(
+            child: const Text('Chưa có lịch hẹn sắp tới.',
+                style: TextStyle(color: AppColors.textGrey)),
+          )
+        else
+          for (final a in upcoming) ...[
+            _buildUpcomingCard(a),
+            const SizedBox(height: 10),
+          ],
+        const SizedBox(height: 20),
+        _sectionTitle('Lịch sử đặt lịch', Icons.history),
+        const SizedBox(height: 12),
+        if (history.isEmpty)
+          _card(
+            child: const Text('Chưa có lịch sử.', style: TextStyle(color: AppColors.textGrey)),
+          )
+        else
+          _card(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                for (final a in history) _buildHistoryRow(a),
+              ],
+            ),
+          ),
+        const SizedBox(height: 16),
+        _buildBookBanner(),
+      ],
+    );
+  }
+
+  Widget _buildUpcomingCard(Appointment a) {
+    return _card(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildPhoto(a.image, width: 90, height: 104),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildStatusChip(a.status, upcoming: true),
+                const SizedBox(height: 6),
+                Text(a.serviceName,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                _buildSmallLine(Icons.location_on_outlined, a.salonName),
+                _buildSmallLine(Icons.calendar_today_outlined, formatAppointmentTime(a.startTime)),
+                if (a.stylistName != null)
+                  _buildSmallLine(Icons.person_outline, a.stylistName!),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: OutlinedButton(
+                    onPressed: () => _showDetail(a),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.pink,
+                      side: const BorderSide(color: AppColors.pink),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    child: const Text('Xem chi tiết', style: TextStyle(fontSize: 12)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryRow(Appointment a) {
+    return ListTile(
+      onTap: () => _showDetail(a),
+      leading: _buildPhoto(a.image, width: 52, height: 52),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(a.serviceName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+          ),
+          _buildStatusChip(a.status, upcoming: false),
+        ],
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSmallLine(Icons.location_on_outlined, a.salonName),
+          _buildSmallLine(Icons.calendar_today_outlined, formatAppointmentTime(a.startTime)),
+        ],
+      ),
+      trailing: const Icon(Icons.chevron_right, color: AppColors.textGrey),
+    );
+  }
+
+  Widget _buildStatusChip(AppointmentStatus status, {required bool upcoming}) {
+    Color bg;
+    Color fg;
+    if (status == AppointmentStatus.cancelled) {
+      bg = const Color(0xFFEDEDED);
+      fg = AppColors.textGrey;
+    } else if (upcoming) {
+      bg = const Color(0xFFF6E3E8);
+      fg = AppColors.pink;
+    } else {
+      bg = AppColors.tealLight;
+      fg = AppColors.teal;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
+      child: Text(status.label,
+          style: TextStyle(fontSize: 10, color: fg, fontWeight: FontWeight.w600)),
+    );
+  }
+
+  Widget _buildSmallLine(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: Row(
+        children: [
+          Icon(icon, size: 13, color: AppColors.textGrey),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11, color: AppColors.textGrey)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookBanner() {
+    return _card(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            backgroundColor: Color(0xFFF6E3E8),
+            child: Icon(Icons.calendar_month_outlined, color: AppColors.pink, size: 20),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'Đặt lịch ngay để được tư vấn và chăm sóc tốt nhất!',
+              style: TextStyle(fontSize: 12, color: AppColors.textGrey),
+            ),
+          ),
+          FilledButton(
+            onPressed: () => context.go('/booking'),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.teal),
+            child: const Text('Đặt lịch ngay', style: TextStyle(fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDetail(Appointment a) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: AppColors.cream,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(a.serviceName, style: AppTheme.titleFont(size: 22)),
+              Text('Mã lịch hẹn: ${a.code}', style: const TextStyle(color: AppColors.textGrey)),
+              const SizedBox(height: 16),
+              _buildInfoLine(Icons.storefront_outlined, a.salonName),
+              _buildInfoLine(Icons.location_on_outlined, a.salonAddress),
+              _buildInfoLine(Icons.schedule, formatAppointmentTime(a.startTime)),
+              if (a.stylistName != null) _buildInfoLine(Icons.person_outline, a.stylistName!),
+              _buildInfoLine(Icons.payments_outlined, 'Tổng chi phí: ${formatVnd(a.totalPrice)}'),
+              _buildInfoLine(Icons.info_outline, 'Trạng thái: ${a.status.label}'),
+              if (a.isUpcoming) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.pop(sheetContext);
+                      _cancelAppointment(a);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.pink,
+                      side: const BorderSide(color: AppColors.pink),
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    child: const Text('Hủy lịch hẹn'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoLine(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: AppColors.teal),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text)),
+        ],
+      ),
+    );
   }
 }
