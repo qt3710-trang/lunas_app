@@ -7,6 +7,7 @@ import '../screens/home/home_screen.dart';
 import '../screens/intro/intro_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/shell/main_shell.dart';
+import '../screens/styles/hair_style_detail_screen.dart';
 import '../screens/styles/styles_screen.dart';
 
 /// Toàn bộ đường đi giữa các màn hình của app.
@@ -33,7 +34,18 @@ final appRouter = GoRouter(
           GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
         ]),
         StatefulShellBranch(routes: [
-          GoRoute(path: '/styles', builder: (context, state) => const StylesScreen()),
+          GoRoute(
+            path: '/styles',
+            builder: (context, state) => const StylesScreen(),
+            routes: [
+              // Chi tiết mẫu tóc, vẫn nằm trong tab Mẫu nên giữ thanh menu dưới.
+              GoRoute(
+                path: ':id',
+                builder: (context, state) =>
+                    HairStyleDetailScreen(styleId: state.pathParameters['id']!),
+              ),
+            ],
+          ),
         ]),
         StatefulShellBranch(routes: [
           GoRoute(path: '/ar', builder: (context, state) => const ArTryScreen()),
