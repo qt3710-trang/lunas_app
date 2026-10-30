@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/lunas_logo.dart';
 
-/// GD2: Đăng nhập bằng số điện thoại + mật khẩu.
-///
-/// Hiện tại CHƯA nối Firebase: nhập đủ SĐT và mật khẩu là vào Trang chủ.
-/// Giai đoạn 2 sẽ thay phần _login() bằng Firebase Auth.
+/// Màn Đăng nhập bằng số điện thoại + mật khẩu.
+/// Gọi AuthService.login(). D3 đổi ruột AuthService sang Firebase,
+/// màn này KHÔNG cần sửa.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -20,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _hidePassword = true;
+  bool _loading = false;
 
   @override
   void dispose() {
@@ -28,17 +29,61 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _login() {
-    if (_formKey.currentState!.validate()) {
-      // TODO (giai đoạn 2): kiểm tra tài khoản với Firebase Auth.
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _loading = true);
+    try {
+      await AuthService.instance.login(
+        phone: _phoneController.text.trim(),
+        password: _passwordController.text,
+      );
+      if (!mounted) return;
       context.go('/home');
+    } on AuthException catch (e) {
+      _toast(e.message);
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature: sẽ làm ở giai đoạn sau')),
+  /// Hộp "Quên mật khẩu": nhập SĐT rồi gửi yêu cầu.
+  Future<void> _forgotPassword() async {
+    final controller = TextEditingController(text: _phoneController.text.trim());
+    final phone = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Quên mật khẩu'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.phone,
+          decoration: const InputDecoration(hintText: 'Số điện thoại đã đăng ký'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text.trim()),
+            child: const Text('Gửi'),
+          ),
+        ],
+      ),
     );
+    if (phone == null || phone.isEmpty) return;
+
+    try {
+      await AuthService.instance.sendPasswordReset(phone: phone);
+      _toast('Đã gửi hướng dẫn đặt lại mật khẩu');
+    } on AuthException catch (e) {
+      _toast(e.message);
+    }
+  }
+
+  void _toast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -55,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: FilledButton.tonal(
-                    onPressed: () => _showComingSoon('Đăng ký'),
+                    onPressed: () => context.push('/register'),
                     child: const Text('Đăng ký'),
                   ),
                 ),
@@ -75,7 +120,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Số điện thoại
                 const Text('Số điện thoại', style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -85,16 +129,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     hintText: 'Nhập số điện thoại của bạn',
                     prefixIcon: Icon(Icons.phone_outlined),
                   ),
-                  validator: (value) {
-                    final phone = value?.trim() ?? '';
+                  validator: (v) {
+                    final phone = v?.trim() ?? '';
                     if (phone.isEmpty) return 'Vui lòng nhập số điện thoại';
-                    if (phone.length < 9) return 'Số điện thoại chưa đúng';
+                    if (!RegExp(r'^0\d{9}$').hasMatch(phone)) {
+                      return 'Số điện thoại gồm 10 số, bắt đầu bằng 0';
+                    }
                     return null;
                   },
                 ),
                 const SizedBox(height: 20),
 
-                // Mật khẩu
                 const Text('Mật khẩu', style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -110,30 +155,34 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () => setState(() => _hidePassword = !_hidePassword),
                     ),
                   ),
-                  validator: (value) {
-                    if ((value ?? '').isEmpty) return 'Vui lòng nhập mật khẩu';
-                    return null;
-                  },
+                  validator: (v) =>
+                      (v == null || v.isEmpty) ? 'Vui lòng nhập mật khẩu' : null,
                 ),
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () => _showComingSoon('Quên mật khẩu'),
+                    onPressed: _forgotPassword,
                     child: const Text('Quên mật khẩu?'),
                   ),
                 ),
                 const SizedBox(height: 16),
 
                 ElevatedButton(
-                  onPressed: _login,
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('Đăng nhập'),
-                      SizedBox(width: 8),
-                      Icon(Icons.arrow_forward, size: 20),
-                    ],
-                  ),
+                  onPressed: _loading ? null : _login,
+                  child: _loading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('Đăng nhập'),
+                            SizedBox(width: 8),
+                            Icon(Icons.arrow_forward, size: 20),
+                          ],
+                        ),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -141,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     const Text('Bạn chưa có tài khoản?'),
                     TextButton(
-                      onPressed: () => _showComingSoon('Đăng ký'),
+                      onPressed: () => context.push('/register'),
                       child: const Text('Đăng ký ngay'),
                     ),
                   ],

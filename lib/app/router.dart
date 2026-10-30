@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 
 import '../screens/ar_try/ar_try_screen.dart';
 import '../screens/auth/login_screen.dart';
+import '../screens/auth/register_screen.dart';
 import '../screens/booking/booking_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/intro/intro_screen.dart';
@@ -18,11 +19,17 @@ import '../screens/styles/styles_screen.dart';
 final appRouter = GoRouter(
   initialLocation: '/intro',
   routes: [
+    // Địa chỉ gốc "/" -> tự chuyển về màn Giới thiệu (tránh trang "Page Not Found")
+    GoRoute(path: '/', redirect: (context, state) => '/intro'),
+
     // GD1: Giới thiệu
     GoRoute(path: '/intro', builder: (context, state) => const IntroScreen()),
 
     // GD2: Đăng nhập
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+
+    // Đăng ký tài khoản (mở từ màn Đăng nhập)
+    GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
 
     // 5 tab chính, dùng chung thanh menu dưới.
     // Mỗi tab giữ nguyên trạng thái khi chuyển qua lại.
