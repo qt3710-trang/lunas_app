@@ -10,6 +10,10 @@ import '../screens/profile/profile_screen.dart';
 import '../screens/shell/main_shell.dart';
 import '../screens/styles/hair_style_detail_screen.dart';
 import '../screens/styles/styles_screen.dart';
+import '../services/auth_service.dart';
+
+/// Các trang ai cũng vào được, KHÔNG cần đăng nhập.
+const _publicPages = ['/intro', '/login', '/register'];
 
 /// Toàn bộ đường đi giữa các màn hình của app.
 ///
@@ -18,8 +22,29 @@ import '../screens/styles/styles_screen.dart';
 /// thì khai báo thêm GoRoute ở đây.
 final appRouter = GoRouter(
   initialLocation: '/intro',
+
+  // "Người gác cổng": chạy TRƯỚC mỗi lần chuyển trang.
+  // Trả về một địa chỉ = chuyển hướng sang đó. Trả về null = cho đi tiếp.
+  redirect: (context, state) {
+    final loggedIn = AuthService.instance.isLoggedIn;
+    final location = state.matchedLocation; // trang đang muốn vào
+
+    // Địa chỉ gốc "/": đã đăng nhập -> Trang chủ, chưa -> Giới thiệu.
+    if (location == '/') return loggedIn ? '/home' : '/intro';
+
+    final goingPublic = _publicPages.contains(location);
+
+    // Chưa đăng nhập mà vào 5 tab -> bắt đăng nhập.
+    if (!loggedIn && !goingPublic) return '/login';
+
+    // Đã đăng nhập mà vào Giới thiệu / Đăng nhập / Đăng ký -> vào thẳng Trang chủ.
+    if (loggedIn && goingPublic) return '/home';
+
+    return null; // hợp lệ, cho đi tiếp
+  },
+
   routes: [
-    // Địa chỉ gốc "/" -> tự chuyển về màn Giới thiệu (tránh trang "Page Not Found")
+    // Địa chỉ gốc "/" (người gác cổng ở trên sẽ chuyển hướng trước).
     GoRoute(path: '/', redirect: (context, state) => '/intro'),
 
     // GD1: Giới thiệu

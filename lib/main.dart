@@ -4,25 +4,23 @@ import 'package:flutter/material.dart';
 import 'app/router.dart';
 import 'app/theme.dart';
 import 'firebase_options.dart';
+import 'services/auth_service.dart';
 
 // main() có chữ async vì kết nối Firebase cần thời gian,
 // mình phải "chờ" (await) nó xong rồi mới mở giao diện.
 Future<void> main() async {
-  // Bắt buộc gọi dòng này trước khi dùng plugin (như Firebase)
-  // ở trước runApp(). Nó chuẩn bị "cầu nối" giữa Flutter và Android.
+  // Bắt buộc gọi trước khi dùng plugin (như Firebase) ở trước runApp().
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Khởi động Firebase bằng cấu hình flutterfire đã tạo
-  // (file lib/firebase_options.dart).
+  // 1. Khởi động Firebase bằng cấu hình flutterfire đã tạo.
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Dòng in ra để kiểm tra đã kết nối đúng project của nhóm.
-  // Sau này chạy ổn định có thể xoá.
-  debugPrint(
-    'Firebase đã kết nối với project: ${Firebase.app().options.projectId}',
-  );
+  // 2. Mỗi lần mở app đều bắt đầu ở trạng thái CHƯA đăng nhập.
+  //    (Firebase mặc định tự nhớ đăng nhập, nên mình chủ động đăng xuất.)
+  //    Người dùng sẽ thấy Intro -> Đăng nhập / Đăng ký như bình thường.
+  await AuthService.instance.logout();
 
   runApp(const LunasApp());
 }
