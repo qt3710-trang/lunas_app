@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
@@ -6,8 +7,7 @@ import '../../services/auth_service.dart';
 import '../../widgets/lunas_logo.dart';
 
 /// Màn Đăng nhập bằng số điện thoại + mật khẩu.
-/// Gọi AuthService.login(). D3 đổi ruột AuthService sang Firebase,
-/// màn này KHÔNG cần sửa.
+/// Gọi AuthService.login() (Firebase Auth).
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -57,6 +57,10 @@ class _LoginScreenState extends State<LoginScreen> {
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.phone,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(10),
+          ],
           decoration: const InputDecoration(hintText: 'Số điện thoại đã đăng ký'),
         ),
         actions: [
@@ -125,6 +129,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
+                  // Chỉ cho gõ chữ số, tối đa 10 số
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
                   decoration: const InputDecoration(
                     hintText: 'Nhập số điện thoại của bạn',
                     prefixIcon: Icon(Icons.phone_outlined),
@@ -132,8 +141,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   validator: (v) {
                     final phone = v?.trim() ?? '';
                     if (phone.isEmpty) return 'Vui lòng nhập số điện thoại';
-                    if (!RegExp(r'^0\d{9}$').hasMatch(phone)) {
-                      return 'Số điện thoại gồm 10 số, bắt đầu bằng 0';
+                    // Số di động VN: 10 số, bắt đầu bằng 03, 05, 07, 08, 09
+                    if (!RegExp(r'^0[35789]\d{8}$').hasMatch(phone)) {
+                      return 'Số điện thoại không hợp lệ (10 số, đầu 03/05/07/08/09)';
                     }
                     return null;
                   },

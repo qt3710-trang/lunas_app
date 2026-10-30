@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
@@ -59,6 +60,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _toast(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
@@ -99,15 +101,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
+                  // Chỉ cho gõ chữ số, tối đa 10 số
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
                   decoration: const InputDecoration(
-                    hintText: 'Nhập số điện thoại',
+                    hintText: 'Ví dụ: 0912345678',
                     prefixIcon: Icon(Icons.phone_outlined),
                   ),
                   validator: (v) {
                     final phone = v?.trim() ?? '';
                     if (phone.isEmpty) return 'Vui lòng nhập số điện thoại';
-                    if (!RegExp(r'^0\d{9}$').hasMatch(phone)) {
-                      return 'Số điện thoại gồm 10 số, bắt đầu bằng 0';
+                    // Số di động VN: 10 số, bắt đầu bằng 03, 05, 07, 08, 09
+                    if (!RegExp(r'^0[35789]\d{8}$').hasMatch(phone)) {
+                      return 'Số điện thoại không hợp lệ (10 số, đầu 03/05/07/08/09)';
                     }
                     return null;
                   },
