@@ -6,8 +6,14 @@ const cors = require('cors');
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 
+// Trên Vercel: khóa nằm trong biến môi trường FIREBASE_SERVICE_ACCOUNT.
+// Ở máy bạn: vẫn dùng file serviceAccountKey.json như cũ.
+const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
+  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
+  : require('./serviceAccountKey.json');
+
 initializeApp({
-  credential: cert(require('./serviceAccountKey.json')),
+  credential: cert(serviceAccount),
 });
 const db = getFirestore();
 
@@ -48,5 +54,9 @@ app.get('/hair-styles/:id', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log('API chạy ở cổng', PORT));
+// Ở máy: node server.js -> mở cổng 3000. Trên Vercel: chỉ xuất app ra, Vercel tự chạy.
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log('API chạy ở cổng', PORT));
+}
+module.exports = app;
