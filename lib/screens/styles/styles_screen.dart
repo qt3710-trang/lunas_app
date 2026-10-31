@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/data/favorite_styles.dart';
 import '../../app/data/collection_styles.dart';
 import '../../app/data/hair_style.dart';
+import '../../app/data/hair_style_api.dart';
 import '../../app/theme.dart';
 import 'gallery_filter_sheet.dart';
 import 'gallery_widgets.dart';
@@ -57,6 +58,9 @@ class _StylesScreenState extends State<StylesScreen> {
     _scroll.addListener(_onScroll);
     favoriteStyles.addListener(_onFavoritesChanged);
     collectionStyles.addListener(_onFavoritesChanged);
+    loadHairStyles().then((ok) {
+      if (ok && mounted) setState(() {});
+    });
   }
 
   @override
@@ -70,19 +74,25 @@ class _StylesScreenState extends State<StylesScreen> {
 
   /// Đang tìm kiếm / lọc thì hiện một lưới kết quả duy nhất.
   bool get _isRefined =>
-      _query.isNotEmpty || _category != 0 || !_filter.isEmpty || _favoritesOnly || _collectionOnly;
+      _query.isNotEmpty ||
+      _category != 0 ||
+      !_filter.isEmpty ||
+      _favoritesOnly ||
+      _collectionOnly;
 
   List<HairStyle> get _results {
     final q = _query.toLowerCase();
-    return _filter.sorted(hairStyles.where((s) {
-      return _categories[_category].test(s) &&
-          _filter.matches(s) &&
-          (!_favoritesOnly || favoriteStyles.contains(s.id)) &&
-          (!_collectionOnly || collectionStyles.contains(s.id)) &&
-          (q.isEmpty ||
-              s.name.toLowerCase().contains(q) ||
-              s.color.label.toLowerCase().contains(q));
-    }).toList());
+    return _filter.sorted(
+      hairStyles.where((s) {
+        return _categories[_category].test(s) &&
+            _filter.matches(s) &&
+            (!_favoritesOnly || favoriteStyles.contains(s.id)) &&
+            (!_collectionOnly || collectionStyles.contains(s.id)) &&
+            (q.isEmpty ||
+                s.name.toLowerCase().contains(q) ||
+                s.color.label.toLowerCase().contains(q));
+      }).toList(),
+    );
   }
 
   /// Mỗi điều kiện lọc đang bật thành một chip có nút × để bỏ riêng.
@@ -97,7 +107,10 @@ class _StylesScreenState extends State<StylesScreen> {
       for (final e in f.colors)
         (e.label, () => update(f.copyWith(colors: {...f.colors}..remove(e)))),
       for (final e in f.occasions)
-        (e.label, () => update(f.copyWith(occasions: {...f.occasions}..remove(e)))),
+        (
+          e.label,
+          () => update(f.copyWith(occasions: {...f.occasions}..remove(e))),
+        ),
       if (f.sort != HairSort.all)
         (f.sort.label, () => update(f.copyWith(sort: HairSort.all))),
     ];
@@ -107,7 +120,8 @@ class _StylesScreenState extends State<StylesScreen> {
 
   Future<void> _onScroll() async {
     if (_isRefined || _loadingMore || _moreCount >= _moreTotal) return;
-    if (_scroll.position.pixels < _scroll.position.maxScrollExtent - 300) return;
+    if (_scroll.position.pixels < _scroll.position.maxScrollExtent - 300)
+      return;
 
     setState(() => _loadingMore = true);
     // Giả lập tải thêm từ server.
@@ -167,9 +181,15 @@ class _StylesScreenState extends State<StylesScreen> {
                     children: [
                       TextSpan(
                         text: 'Bộ sưu tập ',
-                        style: AppTheme.titleFont(size: 24, color: AppColors.teal),
+                        style: AppTheme.titleFont(
+                          size: 24,
+                          color: AppColors.teal,
+                        ),
                       ),
-                      TextSpan(text: 'tóc xinh', style: AppTheme.titleFont(size: 24)),
+                      TextSpan(
+                        text: 'tóc xinh',
+                        style: AppTheme.titleFont(size: 24),
+                      ),
                     ],
                   ),
                 ),
@@ -284,14 +304,17 @@ class _StylesScreenState extends State<StylesScreen> {
                 ? const SizedBox(
                     width: 24,
                     height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.teal),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.teal,
+                    ),
                   )
                 : _moreCount >= _moreTotal
-                    ? const Text(
-                        'Bạn đã xem hết mẫu tóc',
-                        style: TextStyle(fontSize: 12, color: AppColors.textGrey),
-                      )
-                    : const SizedBox.shrink(),
+                ? const Text(
+                    'Bạn đã xem hết mẫu tóc',
+                    style: TextStyle(fontSize: 12, color: AppColors.textGrey),
+                  )
+                : const SizedBox.shrink(),
           ),
         ),
       ),
@@ -303,11 +326,16 @@ class _StylesScreenState extends State<StylesScreen> {
     return [
       if (!_filter.isEmpty)
         SliverToBoxAdapter(
-          child: _ActiveFilterChips(chips: _activeFilterChips, onFilter: _openFilter),
+          child: _ActiveFilterChips(
+            chips: _activeFilterChips,
+            onFilter: _openFilter,
+          ),
         ),
       SliverToBoxAdapter(
         child: _SectionTitle(
-          title: _collectionOnly ? 'Bộ sưu tập của tôi' : (_favoritesOnly ? 'Yêu thích' : 'Kết quả phù hợp'),
+          title: _collectionOnly
+              ? 'Bộ sưu tập của tôi'
+              : (_favoritesOnly ? 'Yêu thích' : 'Kết quả phù hợp'),
           subtitle: '(${results.length} mẫu)',
           // Đang lọc thì nút Lọc đã nằm cuối hàng chip.
           trailing: _filter.isEmpty ? _FilterButton(onTap: _openFilter) : null,
@@ -358,10 +386,16 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       child: Row(
         children: [
-          Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+          ),
           if (subtitle != null) ...[
             const SizedBox(width: 6),
-            Text(subtitle!, style: const TextStyle(fontSize: 13, color: AppColors.textGrey)),
+            Text(
+              subtitle!,
+              style: const TextStyle(fontSize: 13, color: AppColors.textGrey),
+            ),
           ],
           const Spacer(),
           ?trailing,
@@ -425,7 +459,11 @@ class _ActiveFilterChips extends StatelessWidget {
                   children: [
                     Text(label, style: const TextStyle(fontSize: 13)),
                     const SizedBox(width: 6),
-                    const Icon(Icons.close, size: 16, color: AppColors.textDark),
+                    const Icon(
+                      Icons.close,
+                      size: 16,
+                      color: AppColors.textDark,
+                    ),
                   ],
                 ),
               ),

@@ -29,8 +29,9 @@ class HairStyleDetailScreen extends StatefulWidget {
 }
 
 class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
-  late final HairStyle? _style =
-      hairStyles.where((s) => s.id == widget.styleId).firstOrNull;
+  late final HairStyle? _style = hairStyles
+      .where((s) => s.id == widget.styleId)
+      .firstOrNull;
 
   int _angle = 0;
   late HairColor _color = _style!.color;
@@ -43,8 +44,8 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
   late String _texture = _style!.types.contains(HairType.curly)
       ? 'Xoăn'
       : _style.types.contains(HairType.straight)
-          ? 'Thẳng'
-          : 'Gợn sóng';
+      ? 'Thẳng'
+      : 'Gợn sóng';
 
   void _back() {
     if (context.canPop()) {
@@ -59,12 +60,16 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
     collectionStyles.add(style.id);
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(alreadySaved
-            ? '${style.name} đã có trong Bộ sưu tập của tôi'
-            : 'Đã thêm ${style.name} vào Bộ sưu tập của tôi'),
-        behavior: SnackBarBehavior.floating,
-      ));
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            alreadySaved
+                ? '${style.name} đã có trong Bộ sưu tập của tôi'
+                : 'Đã thêm ${style.name} vào Bộ sưu tập của tôi',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   @override
@@ -79,11 +84,18 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(icon: const Icon(Icons.chevron_left, size: 30), onPressed: _back),
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left, size: 30),
+          onPressed: _back,
+        ),
         centerTitle: true,
         title: const Text(
           'LUNAS HAIR STUDIO',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 1.2),
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.2,
+          ),
         ),
         actions: [
           ListenableBuilder(
@@ -111,11 +123,18 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
           const SizedBox(height: 16),
           Text(style.name, style: AppTheme.titleFont(size: 26)),
           const SizedBox(height: 2),
-          Text(style.tagline, style: const TextStyle(color: AppColors.pink, fontSize: 14)),
+          Text(
+            style.tagline,
+            style: const TextStyle(color: AppColors.pink, fontSize: 14),
+          ),
           const SizedBox(height: 10),
           Text(
             style.description,
-            style: const TextStyle(fontSize: 13, height: 1.5, color: AppColors.textDark),
+            style: const TextStyle(
+              fontSize: 13,
+              height: 1.5,
+              color: AppColors.textDark,
+            ),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -126,16 +145,20 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
           const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(child: _InfoBox(icon: Icons.schedule, text: style.duration)),
+              Expanded(
+                child: _InfoBox(icon: Icons.schedule, text: style.duration),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _InfoBox(icon: Icons.sell_outlined, text: style.price)),
+              Expanded(
+                child: _InfoBox(icon: Icons.sell_outlined, text: style.price),
+              ),
             ],
           ),
           const _Heading(
             'Chọn màu tóc của bạn',
             subtitle: 'Khám phá sắc màu phù hợp với phong cách bạn yêu thích.',
           ),
-          _buildColorPicker(),
+          _buildColorPicker(style),
           const _Heading('Tùy biến nhanh'),
           _OptionGroup(
             title: 'Độ dài tóc',
@@ -171,20 +194,32 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            HairThumb(color: _color, icon: _angles[_angle], iconSize: 120),
+            HairThumb(
+              color: _color,
+              icon: _angles[_angle],
+              iconSize: 120,
+              imageUrl: _angle == 0 ? style.imageFor(_color) : null,
+            ),
             if (style.isTrending)
               Positioned(
                 top: 12,
                 right: 12,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFCEFD2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(
                     'Đang thịnh hành',
-                    style: TextStyle(fontSize: 11, color: Color(0xFFB07A1E), fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFFB07A1E),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -222,15 +257,15 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
     );
   }
 
-  Widget _buildColorPicker() {
+  Widget _buildColorPicker(HairStyle style) {
     return SizedBox(
       height: 96,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: HairColor.values.length,
+        itemCount: style.colors.length,
         separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, i) {
-          final c = HairColor.values[i];
+          final c = style.colors[i];
           final selected = c == _color;
           return GestureDetector(
             onTap: () => setState(() => _color = c),
@@ -252,7 +287,11 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          HairThumb(color: c, iconSize: 30),
+                          HairThumb(
+                            color: c,
+                            iconSize: 30,
+                            imageUrl: style.colorImages[c],
+                          ),
                           if (selected)
                             const Positioned(
                               top: 4,
@@ -260,7 +299,11 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
                               child: CircleAvatar(
                                 radius: 8,
                                 backgroundColor: AppColors.teal,
-                                child: Icon(Icons.check, size: 11, color: Colors.white),
+                                child: Icon(
+                                  Icons.check,
+                                  size: 11,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                         ],
@@ -274,7 +317,9 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 10.5,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight: selected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
                     ),
                   ),
                 ],
@@ -338,7 +383,9 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
                 foregroundColor: AppColors.teal,
                 minimumSize: const Size.fromHeight(48),
                 side: const BorderSide(color: AppColors.teal),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ),
@@ -347,10 +394,16 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
             child: ElevatedButton.icon(
               onPressed: () => _saveToCollection(style),
               icon: const Icon(Icons.collections_bookmark_outlined, size: 18),
-              label: const Text('Thêm vào bộ sưu tập của tôi', maxLines: 1, overflow: TextOverflow.ellipsis),
+              label: const Text(
+                'Thêm vào bộ sưu tập của tôi',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ),
@@ -373,10 +426,16 @@ class _Heading extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
           if (subtitle != null) ...[
             const SizedBox(height: 2),
-            Text(subtitle!, style: const TextStyle(fontSize: 12, color: AppColors.textGrey)),
+            Text(
+              subtitle!,
+              style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
+            ),
           ],
         ],
       ),
@@ -397,7 +456,10 @@ class _Tag extends StatelessWidget {
         color: const Color(0xFFF7E6EC),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textDark)),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 12, color: AppColors.textDark),
+      ),
     );
   }
 }
@@ -422,7 +484,10 @@ class _InfoBox extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: AppColors.textDark),
           const SizedBox(width: 8),
-          Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          Text(
+            text,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
         ],
       ),
     );
@@ -450,7 +515,10 @@ class _OptionGroup extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 4),
           Row(
             children: [
@@ -464,12 +532,21 @@ class _OptionGroup extends StatelessWidget {
                       child: Row(
                         children: [
                           Icon(
-                            o == value ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                            o == value
+                                ? Icons.radio_button_checked
+                                : Icons.radio_button_unchecked,
                             size: 20,
-                            color: o == value ? AppColors.teal : AppColors.textGrey,
+                            color: o == value
+                                ? AppColors.teal
+                                : AppColors.textGrey,
                           ),
                           const SizedBox(width: 6),
-                          Flexible(child: Text(o, style: const TextStyle(fontSize: 13))),
+                          Flexible(
+                            child: Text(
+                              o,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
                         ],
                       ),
                     ),

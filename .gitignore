@@ -52,3 +52,5 @@ app.*.map.json
 .kotlin/
 **/.kotlin/
 .vscode/settings.json
+lunas_api/node_modules/
+lunas_api/serviceAccountKey.json
