@@ -1,0 +1,653 @@
+[
+  {
+    "id": "pixie-cut",
+    "name": "Pixie Cut",
+    "length": "Tóc ngắn",
+    "styleType": [
+      "Tóc tém"
+    ],
+    "occasions": [
+      "Đi làm",
+      "Tiệc / Sự kiện",
+      "Đi học"
+    ],
+    "likes": 349,
+    "isNew": false,
+    "description": "Tóc tém ngắn gọn, cá tính, dễ chăm sóc.",
+    "imageUrl": "",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": ""
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": ""
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": ""
+      }
+    ]
+  },
+  {
+    "id": "bob-ngan",
+    "name": "Bob Ngắn",
+    "length": "Tóc ngắn",
+    "styleType": [
+      "Bob"
+    ],
+    "occasions": [
+      "Du lịch",
+      "Hằng ngày"
+    ],
+    "likes": 674,
+    "isNew": false,
+    "description": "Bob ngắn ngang cằm, đuôi tóc gọn gàng và hiện đại.",
+    "imageUrl": "https://res.cloudinary.com/civ4h7ce/image/upload/v1793446632/kkkk.jpg",
+    "colors": [
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": ""
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": ""
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": ""
+      }
+    ]
+  },
+  {
+    "id": "short-layer",
+    "name": "Short Layer",
+    "length": "Tóc ngắn",
+    "styleType": [
+      "Layer"
+    ],
+    "occasions": [
+      "Du lịch",
+      "Đi làm"
+    ],
+    "likes": 338,
+    "isNew": false,
+    "description": "Tóc ngắn cắt layer, tạo độ phồng và chuyển động nhẹ.",
+    "imageUrl": "",
+    "colors": [
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": ""
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": ""
+      }
+    ]
+  },
+  {
+    "id": "short-wolf-cut",
+    "name": "Short Wolf Cut",
+    "length": "Tóc ngắn",
+    "styleType": [
+      "Wolf Cut"
+    ],
+    "occasions": [
+      "Tiệc / Sự kiện",
+      "Du lịch"
+    ],
+    "likes": 371,
+    "isNew": true,
+    "description": "Wolf cut ngắn nhiều tầng, phong cách cá tính.",
+    "imageUrl": "",
+    "colors": [
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": ""
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": ""
+      }
+    ]
+  },
+  {
+    "id": "toc-uon-ngan",
+    "name": "Tóc Uốn Ngắn",
+    "length": "Tóc ngắn",
+    "styleType": [
+      "Tóc uốn"
+    ],
+    "occasions": [
+      "Hằng ngày",
+      "Tiệc / Sự kiện"
+    ],
+    "likes": 360,
+    "isNew": false,
+    "description": "Tóc ngắn uốn xoăn nhẹ, tạo độ bồng bềnh.",
+    "imageUrl": "",
+    "colors": [
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": ""
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": ""
+      }
+    ]
+  },
+  {
+    "id": "toc-thang-ngan",
+    "name": "Tóc Thẳng Ngắn",
+    "length": "Tóc ngắn",
+    "styleType": [
+      "Tóc thẳng"
+    ],
+    "occasions": [
+      "Đi làm",
+      "Hằng ngày"
+    ],
+    "likes": 890,
+    "isNew": false,
+    "description": "Tóc thẳng ngắn cắt gọn, thanh lịch và dễ tạo kiểu.",
+    "imageUrl": "",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": ""
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": ""
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": ""
+      }
+    ]
+  },
+  {
+    "id": "bob-ngang-vai",
+    "name": "Bob Ngang Vai",
+    "length": "Tóc ngang vai",
+    "styleType": [
+      "Bob"
+    ],
+    "occasions": [
+      "Hằng ngày",
+      "Đi làm",
+      "Du lịch"
+    ],
+    "likes": 870,
+    "isNew": false,
+    "description": "Bob dài ngang vai, thanh lịch và dễ ứng dụng.",
+    "imageUrl": "",
+    "colors": [
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": ""
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": ""
+      }
+    ]
+  },
+  {
+    "id": "layer-ngang-vai",
+    "name": "Layer Ngang Vai",
+    "length": "Tóc ngang vai",
+    "styleType": [
+      "Layer"
+    ],
+    "occasions": [
+      "Đi học",
+      "Tiệc / Sự kiện"
+    ],
+    "likes": 447,
+    "isNew": false,
+    "description": "Layer ngang vai, tóc nhẹ và có độ bay tự nhiên.",
+    "imageUrl": "",
+    "colors": [
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": ""
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": ""
+      }
+    ]
+  },
+  {
+    "id": "wolf-cut-ngang-vai",
+    "name": "Wolf Cut Ngang Vai",
+    "length": "Tóc ngang vai",
+    "styleType": [
+      "Wolf Cut"
+    ],
+    "occasions": [
+      "Du lịch",
+      "Đi học"
+    ],
+    "likes": 873,
+    "isNew": false,
+    "description": "Wolf cut ngang vai, nhiều tầng và hơi rối tự nhiên.",
+    "imageUrl": "",
+    "colors": [
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": ""
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": ""
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": ""
+      }
+    ]
+  },
+  {
+    "id": "hush-cut-ngang-vai",
+    "name": "Hush Cut Ngang Vai",
+    "length": "Tóc ngang vai",
+    "styleType": [
+      "Hush Cut"
+    ],
+    "occasions": [
+      "Hằng ngày",
+      "Đi làm"
+    ],
+    "likes": 681,
+    "isNew": false,
+    "description": "Hush cut kèm mái thưa, phong cách tự nhiên.",
+    "imageUrl": "",
+    "colors": [
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": ""
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": ""
+      }
+    ]
+  },
+  {
+    "id": "toc-uon-ngang-vai",
+    "name": "Tóc Uốn Ngang Vai",
+    "length": "Tóc ngang vai",
+    "styleType": [
+      "Tóc uốn"
+    ],
+    "occasions": [
+      "Du lịch",
+      "Hằng ngày"
+    ],
+    "likes": 877,
+    "isNew": false,
+    "description": "Tóc uốn ngang vai, nữ tính và nhiều độ phồng.",
+    "imageUrl": "",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": ""
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": ""
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": ""
+      }
+    ]
+  },
+  {
+    "id": "toc-thang-ngang-vai",
+    "name": "Tóc Thẳng Ngang Vai",
+    "length": "Tóc ngang vai",
+    "styleType": [
+      "Tóc thẳng"
+    ],
+    "occasions": [
+      "Du lịch",
+      "Đi làm"
+    ],
+    "likes": 808,
+    "isNew": false,
+    "description": "Tóc thẳng mượt ngang vai, gọn gàng.",
+    "imageUrl": "",
+    "colors": [
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": ""
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": ""
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": ""
+      }
+    ]
+  },
+  {
+    "id": "long-layer",
+    "name": "Long Layer",
+    "length": "Tóc dài",
+    "styleType": [
+      "Layer"
+    ],
+    "occasions": [
+      "Đi học",
+      "Tiệc / Sự kiện",
+      "Du lịch"
+    ],
+    "likes": 764,
+    "isNew": false,
+    "description": "Tóc dài cắt layer mềm, nhẹ và có chuyển động.",
+    "imageUrl": "",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": ""
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": ""
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": ""
+      }
+    ]
+  },
+  {
+    "id": "soft-wolf-cut",
+    "name": "Soft Wolf Cut",
+    "length": "Tóc dài",
+    "styleType": [
+      "Wolf Cut"
+    ],
+    "occasions": [
+      "Đi học",
+      "Đi làm",
+      "Hằng ngày"
+    ],
+    "likes": 549,
+    "isNew": true,
+    "description": "Wolf cut mềm mại cho tóc dài, nhiều tầng ở đỉnh đầu.",
+    "imageUrl": "",
+    "colors": [
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": ""
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": ""
+      }
+    ]
+  },
+  {
+    "id": "hush-cut-dai",
+    "name": "Hush Cut Dài",
+    "length": "Tóc dài",
+    "styleType": [
+      "Hush Cut"
+    ],
+    "occasions": [
+      "Du lịch",
+      "Đi học"
+    ],
+    "likes": 837,
+    "isNew": true,
+    "description": "Hush cut cho tóc dài, layer rối nhẹ kèm mái thưa.",
+    "imageUrl": "",
+    "colors": [
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": ""
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": ""
+      }
+    ]
+  },
+  {
+    "id": "toc-uon-song-dai",
+    "name": "Tóc Uốn Sóng Dài",
+    "length": "Tóc dài",
+    "styleType": [
+      "Tóc uốn"
+    ],
+    "occasions": [
+      "Đi học",
+      "Tiệc / Sự kiện",
+      "Đi làm"
+    ],
+    "likes": 923,
+    "isNew": true,
+    "description": "Tóc dài uốn sóng nhẹ, bồng bềnh và nữ tính.",
+    "imageUrl": "",
+    "colors": [
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": ""
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": ""
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": ""
+      }
+    ]
+  },
+  {
+    "id": "toc-thang-dai",
+    "name": "Tóc Thẳng Dài",
+    "length": "Tóc dài",
+    "styleType": [
+      "Tóc thẳng"
+    ],
+    "occasions": [
+      "Hằng ngày",
+      "Tiệc / Sự kiện"
+    ],
+    "likes": 468,
+    "isNew": false,
+    "description": "Tóc dài thẳng mượt, sang trọng và gọn gàng.",
+    "imageUrl": "",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": ""
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": ""
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": ""
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": ""
+      }
+    ]
+  }
+]

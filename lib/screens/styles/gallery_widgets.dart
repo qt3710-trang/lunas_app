@@ -3,22 +3,36 @@ import 'package:flutter/material.dart';
 import '../../app/data/hair_style.dart';
 import '../../app/theme.dart';
 
-/// Ảnh tạm của mẫu tóc: nền chuyển màu theo màu tóc.
-/// Khi có ảnh thật thì thay bằng Image.asset / Image.network.
+/// Ảnh của mẫu tóc. Có [imageUrl] thì tải ảnh thật từ mạng;
+/// không có (hoặc đang tải / lỗi) thì hiện nền chuyển màu theo màu tóc.
 class HairThumb extends StatelessWidget {
   const HairThumb({
     super.key,
     required this.color,
     this.iconSize = 56,
     this.icon = Icons.face_3,
+    this.imageUrl,
   });
 
   final HairColor color;
   final double iconSize;
   final IconData icon;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
+    final url = imageUrl;
+    if (url == null || url.isEmpty) return _placeholder();
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      loadingBuilder: (context, child, progress) =>
+          progress == null ? child : _placeholder(),
+      errorBuilder: (context, error, stack) => _placeholder(),
+    );
+  }
+
+  Widget _placeholder() {
     final base = color.color;
     return Container(
       decoration: BoxDecoration(
@@ -29,7 +43,11 @@ class HairThumb extends StatelessWidget {
         ),
       ),
       alignment: Alignment.center,
-      child: Icon(icon, size: iconSize, color: Colors.white.withValues(alpha: 0.85)),
+      child: Icon(
+        icon,
+        size: iconSize,
+        color: Colors.white.withValues(alpha: 0.85),
+      ),
     );
   }
 }
@@ -93,11 +111,14 @@ class HairStyleCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  HairThumb(color: style.color),
+                  HairThumb(color: style.color, imageUrl: style.thumbUrl),
                   Positioned(
                     top: 8,
                     right: 8,
-                    child: _FavoriteButton(active: isFavorite, onTap: onFavorite),
+                    child: _FavoriteButton(
+                      active: isFavorite,
+                      onTap: onFavorite,
+                    ),
                   ),
                 ],
               ),
@@ -111,7 +132,10 @@ class HairStyleCard extends StatelessWidget {
                     style.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   HairColorLabel(color: style.color),

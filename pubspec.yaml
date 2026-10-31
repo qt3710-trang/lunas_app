@@ -1,4 +1,4 @@
-﻿name: lunas_app
+name: lunas_app
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -40,6 +40,7 @@ dependencies:
   easy_date_timeline: ^2.0.9
   intl: ^0.20.3
   shared_preferences: ^2.5.6
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:
