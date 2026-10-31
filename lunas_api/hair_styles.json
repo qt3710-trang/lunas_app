@@ -1,652 +1,1152 @@
 [
   {
-    "id": "pixie-cut",
-    "name": "Pixie Cut",
+    "id": "toc-dai-tia-layer",
+    "name": "Tóc dài tỉa Layer",
+    "length": "Tóc dài",
+    "styleType": [
+      "Layer"
+    ],
+    "occasions": [
+      "Đi học",
+      "Đi làm",
+      "Hằng ngày"
+    ],
+    "likes": 93,
+    "isNew": false,
+    "description": "Tóc dài được tỉa nhiều lớp mềm mại, giúp mái tóc nhẹ hơn, ôm mặt tự nhiên và dễ tạo độ phồng.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793463399/To%CC%81c_nga%CC%86%CC%81n_ti%CC%89a_Layer_-_NA%CC%82U.jpg",
+    "colors": [
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793463399/To%CC%81c_nga%CC%86%CC%81n_ti%CC%89a_Layer_-_NA%CC%82U.jpg"
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793463405/To%CC%81c_nga%CC%86%CC%81n_ti%CC%89a_Layer_-_%C4%90EN.jpg"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793463399/To%CC%81c_nga%CC%86%CC%81n_ti%CC%89a_Layer_-_%C4%90O%CC%89.webp"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793463399/To%CC%81c_nga%CC%86%CC%81n_ti%CC%89a_Layer_-_VA%CC%80NG.webp"
+      }
+    ]
+  },
+  {
+    "id": "toc-dai-uon-song-loi",
+    "name": "Tóc dài uốn sóng lơi",
+    "length": "Tóc dài",
+    "styleType": [
+      "Tóc uốn"
+    ],
+    "occasions": [
+      "Hằng ngày",
+      "Du lịch",
+      "Tiệc / Sự kiện"
+    ],
+    "likes": 95,
+    "isNew": false,
+    "description": "Những gợn sóng lơi nhẹ chạy dọc thân tóc, mang lại vẻ nữ tính, phóng khoáng mà vẫn tự nhiên.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793463687/DA%CC%80I_SO%CC%81NG_LO%CC%9BI_%C4%90EN.webp",
+    "colors": [
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793463687/DA%CC%80I_SO%CC%81NG_LO%CC%9BI_NA%CC%82U.jpg"
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793463687/DA%CC%80I_SO%CC%81NG_LO%CC%9BI_%C4%90EN.webp"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793463688/DA%CC%80I_SO%CC%81NG_LO%CC%9BI_VA%CC%80NG.jpg"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793463686/DA%CC%80I_SO%CC%81NG_LO%CC%9BI_%C4%90O%CC%89.jpg"
+      }
+    ]
+  },
+  {
+    "id": "toc-dai-thang-tu-nhien",
+    "name": "Tóc dài thẳng tự nhiên",
+    "length": "Tóc dài",
+    "styleType": [
+      "Tóc thẳng"
+    ],
+    "occasions": [
+      "Đi học",
+      "Đi làm",
+      "Hằng ngày"
+    ],
+    "likes": 87,
+    "isNew": false,
+    "description": "Tóc dài giữ độ thẳng mượt tự nhiên, đường nét đơn giản, thanh lịch và dễ phối nhiều phong cách.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464149/TO%CC%81C_DA%CC%80I_THA%CC%86%CC%89NG_TU%CC%9B%CC%A3_NHIE%CC%82N_VA%CC%80NG.jpg",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464148/DA%CC%80I_THA%CC%86%CC%89NG_TU%CC%9B%CC%A3_NHIE%CC%82N_%C4%90EN.webp"
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464149/TO%CC%81C_DA%CC%80I_THA%CC%86%CC%89NG_TU%CC%9B%CC%A3_NHIE%CC%82N_NA%CC%82U.webp"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464148/TO%CC%81C_DA%CC%80I_THA%CC%86%CC%89NG_TU%CC%9B%CC%A3_NHIE%CC%82N_%C4%90O%CC%89.webp"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464149/TO%CC%81C_DA%CC%80I_THA%CC%86%CC%89NG_TU%CC%9B%CC%A3_NHIE%CC%82N_VA%CC%80NG.jpg"
+      }
+    ]
+  },
+  {
+    "id": "toc-dai-uon-xoan-song-nuoc",
+    "name": "Tóc dài uốn xoăn sóng nước",
+    "length": "Tóc dài",
+    "styleType": [
+      "Tóc uốn"
+    ],
+    "occasions": [
+      "Tiệc / Sự kiện",
+      "Du lịch"
+    ],
+    "likes": 90,
+    "isNew": false,
+    "description": "Lọn uốn dạng sóng nước đều và mềm, tạo chuyển động uyển chuyển cùng độ bồng bềnh cho tóc dài.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464374/TO%CC%81C_DA%CC%80I_SO%CC%81NG_NU%CC%9BO%CC%9B%CC%81C_%C4%90EN.jpg",
+    "colors": [
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464376/TO%CC%81C_DA%CC%80I_SO%CC%81NG_NU%CC%9BO%CC%9B%CC%81C_NA%CC%82U.jpg"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464375/TO%CC%81C_DA%CC%80I_SO%CC%81NG_NU%CC%9BO%CC%9B%CC%81C_%C4%90O%CC%89.jpg"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464378/TO%CC%81C_DA%CC%80I_SO%CC%81NG_NU%CC%9BO%CC%9B%CC%81C_VA%CC%80NG.png"
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464374/TO%CC%81C_DA%CC%80I_SO%CC%81NG_NU%CC%9BO%CC%9B%CC%81C_%C4%90EN.jpg"
+      }
+    ]
+  },
+  {
+    "id": "toc-dai-uon-xu-dua-hippie",
+    "name": "Tóc dài uốn xù đũa (Hippie)",
+    "length": "Tóc dài",
+    "styleType": [
+      "Tóc uốn"
+    ],
+    "occasions": [
+      "Du lịch",
+      "Tiệc / Sự kiện"
+    ],
+    "likes": 83,
+    "isNew": true,
+    "description": "Tóc dài uốn lọn nhỏ kiểu Hippie, tạo độ xù bồng cá tính và phong cách tự do, nổi bật.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464817/TO%CC%81C_DA%CC%80I_XOA%CC%86N_%C4%90U%CC%83A_%C4%90EN.jpg",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464817/TO%CC%81C_DA%CC%80I_XOA%CC%86N_%C4%90U%CC%83A_%C4%90EN.jpg"
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464820/TO%CC%81C_DA%CC%80I_XOA%CC%86N_%C4%90U%CC%83A_NA%CC%82U.jpg"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464819/TO%CC%81C_DA%CC%80I_XOA%CC%86N_%C4%90U%CC%83A_%C4%90O%CC%89.webp"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464822/TO%CC%81C_DA%CC%80I_XOA%CC%86N_%C4%90U%CC%83A_VA%CC%80NG.jpg"
+      }
+    ]
+  },
+  {
+    "id": "toc-dai-cup-duoi-chu-c",
+    "name": "Tóc dài cúp đuôi chữ C",
+    "length": "Tóc dài",
+    "styleType": [
+      "Tóc uốn"
+    ],
+    "occasions": [
+      "Đi làm",
+      "Hằng ngày"
+    ],
+    "likes": 89,
+    "isNew": false,
+    "description": "Phần đuôi tóc dài được uốn cụp thành chữ C, ôm nhẹ vào trong để tổng thể gọn gàng và dịu dàng.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465100/To%CC%81c_da%CC%80i_cu%CC%81p_%C4%91uo%CC%82i_chu%CC%9B%CC%83_C_-_%C4%90EN.png",
+    "colors": [
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465098/To%CC%81c_da%CC%80i_cu%CC%81p_%C4%91uo%CC%82i_chu%CC%9B%CC%83_C_-_%C4%90O%CC%89.jpg"
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465100/To%CC%81c_da%CC%80i_cu%CC%81p_%C4%91uo%CC%82i_chu%CC%9B%CC%83_C_-_%C4%90EN.png"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465104/To%CC%81c_da%CC%80i_cu%CC%81p_%C4%91uo%CC%82i_chu%CC%9B%CC%83_C_-_VA%CC%80NG.jpg"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465102/To%CC%81c_da%CC%80i_cu%CC%81p_%C4%91uo%CC%82i_chu%CC%9B%CC%83_C_-_NA%CC%82U.jpg"
+      }
+    ]
+  },
+  {
+    "id": "toc-dai-uon-chu-j",
+    "name": "Tóc dài uốn chữ J",
+    "length": "Tóc dài",
+    "styleType": [
+      "Tóc uốn"
+    ],
+    "occasions": [
+      "Đi học",
+      "Đi làm",
+      "Hằng ngày"
+    ],
+    "likes": 86,
+    "isNew": false,
+    "description": "Đuôi tóc dài uốn cong nhẹ hình chữ J, tạo điểm nhấn tinh tế mà không cần uốn xoăn toàn bộ.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465291/To%CC%81c_da%CC%80i_uo%CC%82%CC%81n_chu%CC%9B%CC%83_J_-_%C4%91o%CC%89.jpg",
+    "colors": [
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465295/To%CC%81c_da%CC%80i_uo%CC%82%CC%81n_chu%CC%9B%CC%83_J_-_na%CC%82u.jpg"
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465289/To%CC%81c_da%CC%80i_uo%CC%82%CC%81n_chu%CC%9B%CC%83_J_-_%C4%91en.jpg"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465291/To%CC%81c_da%CC%80i_uo%CC%82%CC%81n_chu%CC%9B%CC%83_J_-_%C4%91o%CC%89.jpg"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465296/To%CC%81c_da%CC%80i_uo%CC%82%CC%81n_chu%CC%9B%CC%83_J_-_va%CC%80ng.webp"
+      }
+    ]
+  },
+  {
+    "id": "toc-dai-uon-lon-to-lang-man",
+    "name": "Tóc dài uốn lọn to lãng mạn",
+    "length": "Tóc dài",
+    "styleType": [
+      "Tóc uốn"
+    ],
+    "occasions": [
+      "Tiệc / Sự kiện",
+      "Du lịch"
+    ],
+    "likes": 88,
+    "isNew": false,
+    "description": "Những lọn xoăn to, mềm và bồng bềnh giúp tóc dài trông dày dặn, mang cảm giác lãng mạn.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465455/To%CC%81c_da%CC%80i_uo%CC%82%CC%81n_lo%CC%A3n_to_-_%C4%90EN.webp",
+    "colors": [
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465460/To%CC%81c_da%CC%80i_uo%CC%82%CC%81n_lo%CC%A3n_to_-_NA%CC%82U.webp"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465458/To%CC%81c_da%CC%80i_uo%CC%82%CC%81n_lo%CC%A3n_to_-_%C4%90O%CC%89.jpg"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465463/To%CC%81c_da%CC%80i_uo%CC%82%CC%81n_lo%CC%A3n_to_-_VA%CC%80NG.jpg"
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465455/To%CC%81c_da%CC%80i_uo%CC%82%CC%81n_lo%CC%A3n_to_-_%C4%90EN.webp"
+      }
+    ]
+  },
+  {
+    "id": "toc-dai-tia-wolf-cut",
+    "name": "Tóc dài tỉa Wolf Cut",
+    "length": "Tóc dài",
+    "styleType": [
+      "Wolf Cut"
+    ],
+    "occasions": [
+      "Đi học",
+      "Du lịch",
+      "Tiệc / Sự kiện"
+    ],
+    "likes": 86,
+    "isNew": true,
+    "description": "Tóc dài tỉa tầng cao thấp rõ nét theo kiểu Wolf Cut, kết hợp sự phóng khoáng và chút nổi loạn.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465640/To%CC%81c_da%CC%80i_ti%CC%89a_Wolf_Cut_-_%C4%90EN.jpg",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465640/To%CC%81c_da%CC%80i_ti%CC%89a_Wolf_Cut_-_%C4%90EN.jpg"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465644/To%CC%81c_da%CC%80i_ti%CC%89a_Wolf_Cut_-_%C4%90O%CC%89.jpg"
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465645/To%CC%81c_da%CC%80i_ti%CC%89a_Wolf_Cut_-_NA%CC%82U.jpg"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465650/To%CC%81c_da%CC%80i_ti%CC%89a_Wolf_Cut_-_VA%CC%80NG.jpg"
+      }
+    ]
+  },
+  {
+    "id": "toc-dai-duoi-thang-mai-bang",
+    "name": "Tóc dài duỗi thẳng mái bằng",
+    "length": "Tóc dài",
+    "styleType": [
+      "Tóc thẳng"
+    ],
+    "occasions": [
+      "Đi học",
+      "Hằng ngày"
+    ],
+    "likes": 85,
+    "isNew": false,
+    "description": "Mái bằng cắt ngang kết hợp tóc dài duỗi thẳng, tạo diện mạo trẻ trung, gọn gàng và sắc nét.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465936/To%CC%81c_da%CC%80i_duo%CC%82%CC%83i_tha%CC%86%CC%89ng_ma%CC%81i_ba%CC%86%CC%80ng_-_VA%CC%80NG.jpg",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465927/To%CC%81c_da%CC%80i_duo%CC%82%CC%83i_tha%CC%86%CC%89ng_ma%CC%81i_ba%CC%86%CC%80ng_-_%C4%90EN.jpg"
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465933/To%CC%81c_da%CC%80i_duo%CC%82%CC%83i_tha%CC%86%CC%89ng_ma%CC%81i_ba%CC%86%CC%80ng_-_NA%CC%82U.jpg"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465936/To%CC%81c_da%CC%80i_duo%CC%82%CC%83i_tha%CC%86%CC%89ng_ma%CC%81i_ba%CC%86%CC%80ng_-_VA%CC%80NG.jpg"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465931/To%CC%81c_da%CC%80i_duo%CC%82%CC%83i_tha%CC%86%CC%89ng_ma%CC%81i_ba%CC%86%CC%80ng_-_%C4%90O%CC%89.jpg"
+      }
+    ]
+  },
+  {
+    "id": "toc-dai-mai-bay-han-quoc",
+    "name": "Tóc dài mái bay Hàn Quốc",
+    "length": "Tóc dài",
+    "styleType": [
+      "Layer"
+    ],
+    "occasions": [
+      "Đi học",
+      "Đi làm",
+      "Hằng ngày"
+    ],
+    "likes": 94,
+    "isNew": false,
+    "description": "Phần mái bay ôm hai bên gương mặt kết hợp tóc dài, mang phong cách Hàn Quốc nhẹ nhàng, thanh thoát.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468538/To%CC%81c_da%CC%80i_ma%CC%81i_bay_Ha%CC%80n_Quo%CC%82%CC%81c_-_NA%CC%82U.jpg",
+    "colors": [
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468538/To%CC%81c_da%CC%80i_ma%CC%81i_bay_Ha%CC%80n_Quo%CC%82%CC%81c_-_NA%CC%82U.jpg"
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468527/To%CC%81c_da%CC%80i_ma%CC%81i_bay_Ha%CC%80n_Quo%CC%82%CC%81c_-_%C4%90EN.webp"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468532/To%CC%81c_da%CC%80i_ma%CC%81i_bay_Ha%CC%80n_Quo%CC%82%CC%81c_-_%C4%90O%CC%89.jpg_webp.webp"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468541/To%CC%81c_da%CC%80i_ma%CC%81i_bay_Ha%CC%80n_Quo%CC%82%CC%81c_-_VA%CC%80NG.webp"
+      }
+    ]
+  },
+  {
+    "id": "toc-dai-hime-nhat-ban",
+    "name": "Tóc dài Hime Nhật Bản",
+    "length": "Tóc dài",
+    "styleType": [
+      "Tóc thẳng"
+    ],
+    "occasions": [
+      "Du lịch",
+      "Tiệc / Sự kiện"
+    ],
+    "likes": 80,
+    "isNew": true,
+    "description": "Tóc dài Hime mang cảm hứng Nhật Bản với hai lọn tóc hai bên được cắt bằng, tạo đường nét ấn tượng.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466303/To%CC%81c_da%CC%80i_Hime_Nha%CC%A3%CC%82t_Ba%CC%89n_-_VA%CC%80NH.jpg",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466294/To%CC%81c_da%CC%80i_Hime_Nha%CC%A3%CC%82t_Ba%CC%89n_-_%C4%90EN.webp"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466296/To%CC%81c_da%CC%80i_Hime_Nha%CC%A3%CC%82t_Ba%CC%89n_-_%C4%90O%CC%89.jpg"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466303/To%CC%81c_da%CC%80i_Hime_Nha%CC%A3%CC%82t_Ba%CC%89n_-_VA%CC%80NH.jpg"
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466301/To%CC%81c_da%CC%80i_Hime_Nha%CC%A3%CC%82t_Ba%CC%89n_-_NA%CC%82U.jpg"
+      }
+    ]
+  },
+  {
+    "id": "toc-dai-hush-cut",
+    "name": "Tóc dài Hush Cut",
+    "length": "Tóc dài",
+    "styleType": [
+      "Hush Cut"
+    ],
+    "occasions": [
+      "Đi học",
+      "Đi làm",
+      "Du lịch"
+    ],
+    "likes": 92,
+    "isNew": true,
+    "description": "Hush Cut dài với các tầng tóc mỏng, mềm và nhẹ, tạo hiệu ứng bồng bềnh tự nhiên quanh khuôn mặt.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466464/To%CC%81c_da%CC%80i_Hush_Cut_-_VA%CC%80NG.jpg",
+    "colors": [
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466461/To%CC%81c_da%CC%80i_Hush_Cut_-_NA%CC%82U.webp"
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466453/To%CC%81c_da%CC%80i_Hush_Cut_-_%C4%90EN.jpg"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466464/To%CC%81c_da%CC%80i_Hush_Cut_-_VA%CC%80NG.jpg"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466457/To%CC%81c_da%CC%80i_Hush_Cut_-_%C4%90O%CC%89.jpg"
+      }
+    ]
+  },
+  {
+    "id": "toc-ngan-tia-layer",
+    "name": "Tóc ngắn tỉa Layer",
+    "length": "Tóc ngắn",
+    "styleType": [
+      "Layer"
+    ],
+    "occasions": [
+      "Đi học",
+      "Hằng ngày",
+      "Du lịch"
+    ],
+    "likes": 91,
+    "isNew": false,
+    "description": "Tóc ngắn tỉa nhiều lớp tạo độ phồng và chuyển động nhẹ, thích hợp phong cách năng động, hiện đại.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466583/DA%CC%80I_LAYER_VA%CC%80NG.webp",
+    "colors": [
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466579/DA%CC%80I_LAYER_NA%CC%82U.webp"
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466572/DA%CC%80I_LAYER_%C4%90EN.webp"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466576/DA%CC%80I_LAYER_%C4%90O%CC%89.webp"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466583/DA%CC%80I_LAYER_VA%CC%80NG.webp"
+      }
+    ]
+  },
+  {
+    "id": "toc-bob",
+    "name": "Tóc Bob",
+    "length": "Tóc ngắn",
+    "styleType": [
+      "Bob"
+    ],
+    "occasions": [
+      "Đi làm",
+      "Hằng ngày"
+    ],
+    "likes": 92,
+    "isNew": false,
+    "description": "Tóc Bob có phom gọn quanh cằm, cân đối, thanh lịch và dễ biến tấu khi tạo kiểu hằng ngày.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466753/To%CC%81c_Bob_-_%C4%90O%CC%89.webp",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466749/To%CC%81c_Bob_-_%C4%90EB.webp"
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466757/To%CC%81c_Bob_-_NA%CC%82U.jpg"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466753/To%CC%81c_Bob_-_%C4%90O%CC%89.webp"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466760/To%CC%81c_Bob_-_VA%CC%80NG.jpg"
+      }
+    ]
+  },
+  {
+    "id": "bob-ngan",
+    "name": "Bob ngắn",
+    "length": "Tóc ngắn",
+    "styleType": [
+      "Bob"
+    ],
+    "occasions": [
+      "Đi học",
+      "Hằng ngày"
+    ],
+    "likes": 88,
+    "isNew": false,
+    "description": "Bob ngắn được cắt cao, ôm sát phần gáy hoặc quanh quai hàm, mang lại vẻ gọn gàng và trẻ trung.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466979/Bob_ba%CC%86%CC%80ng_-_VA%CC%80NG.jpg",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466856/Bob_nga%CC%86%CC%81n_-_%C4%90EN.jpg"
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466864/Bob_nga%CC%86%CC%81n_-_NA%CC%82U.jpg"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466868/Bob_nga%CC%86%CC%81n_-_VA%CC%80NG.jpg"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466859/Bob_nga%CC%86%CC%81n_-_%C4%90O%CC%89.jpg"
+      }
+    ]
+  },
+  {
+    "id": "bob-bang",
+    "name": "Bob bằng",
+    "length": "Tóc ngắn",
+    "styleType": [
+      "Bob"
+    ],
+    "occasions": [
+      "Đi làm",
+      "Tiệc / Sự kiện"
+    ],
+    "likes": 86,
+    "isNew": false,
+    "description": "Bob bằng có đường cắt ngang rõ ràng, tạo phom tóc sắc nét, tối giản và thời thượng.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466976/Bob_ba%CC%86%CC%80ng_-_NA%CC%82U.jpg",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466969/Bob_ba%CC%86%CC%80ng_-_%C4%90EN.webp"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466971/Bob_ba%CC%86%CC%80ng_-_%C4%90O%CC%89.jpg"
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466976/Bob_ba%CC%86%CC%80ng_-_NA%CC%82U.jpg"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466979/Bob_ba%CC%86%CC%80ng_-_VA%CC%80NG.jpg"
+      }
+    ]
+  },
+  {
+    "id": "short-bob",
+    "name": "Short Bob",
+    "length": "Tóc ngắn",
+    "styleType": [
+      "Bob"
+    ],
+    "occasions": [
+      "Du lịch",
+      "Hằng ngày"
+    ],
+    "likes": 84,
+    "isNew": true,
+    "description": "Short Bob là kiểu Bob có độ dài ngắn nổi bật, phom nhỏ gọn và đường nét hiện đại, cá tính.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467092/Short_Bob_-_VA%CC%80NG.jpg",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467080/Short_Bob_-_%C4%90EN.jpg"
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467089/Short_Bob_-_NA%CC%82Y.jpg"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467092/Short_Bob_-_VA%CC%80NG.jpg"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467084/Short_Bob_-_%C4%90O%CC%89.jpg"
+      }
+    ]
+  },
+  {
+    "id": "toc-ngang-vai-uon-cup-chu-c",
+    "name": "Tóc ngắn ngang vai uốn cúp chữ C",
+    "length": "Tóc ngang vai",
+    "styleType": [
+      "Tóc uốn"
+    ],
+    "occasions": [
+      "Đi làm",
+      "Hằng ngày",
+      "Đi học"
+    ],
+    "likes": 91,
+    "isNew": false,
+    "description": "Tóc ngang vai được uốn cụp chữ C ở phần đuôi, tạo cảm giác mềm mại và ôm gương mặt.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468521/To%CC%81c_nga%CC%86%CC%81n_ngang_vai_uo%CC%82%CC%81n_cu%CC%81p_chu%CC%9B%CC%83_C_-_VA%CC%80NG.jpg",
+    "colors": [
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468521/To%CC%81c_nga%CC%86%CC%81n_ngang_vai_uo%CC%82%CC%81n_cu%CC%81p_chu%CC%9B%CC%83_C_-_VA%CC%80NG.jpg"
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468507/To%CC%81c_nga%CC%86%CC%81n_ngang_vai_uo%CC%82%CC%81n_cu%CC%81p_chu%CC%9B%CC%83_C_-_%C4%90EN.jpg"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468511/To%CC%81c_nga%CC%86%CC%81n_ngang_vai_uo%CC%82%CC%81n_cu%CC%81p_chu%CC%9B%CC%83_C_-_%C4%90O%CC%89.webp"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467227/To%CC%81c_te%CC%81m_Pixie_-_VA%CC%80NG.webp"
+      }
+    ]
+  },
+  {
+    "id": "toc-tem-pixie",
+    "name": "Tóc tém Pixie",
+    "length": "Tóc ngắn",
+    "styleType": [
+      "Tóc tém"
+    ],
+    "occasions": [
+      "Hằng ngày",
+      "Du lịch"
+    ],
+    "likes": 93,
+    "isNew": false,
+    "description": "Tóc tém Pixie cắt sát gọn hai bên và phía sau, tôn đường nét gương mặt cùng vẻ tự tin, cá tính.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467227/To%CC%81c_te%CC%81m_Pixie_-_VA%CC%80NG.webp",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467223/To%CC%81c_te%CC%81m_Pixie_-_%C4%90EN.png"
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467223/To%CC%81c_te%CC%81m_Pixie_-_NA%CC%82U.webp"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467219/To%CC%81c_te%CC%81m_Pixie_-_%C4%90O%CC%89.jpg"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467227/To%CC%81c_te%CC%81m_Pixie_-_VA%CC%80NG.webp"
+      }
+    ]
+  },
+  {
+    "id": "pixie-bong-benh",
+    "name": "Pixie bồng bềnh",
     "length": "Tóc ngắn",
     "styleType": [
       "Tóc tém"
     ],
     "occasions": [
       "Đi làm",
-      "Tiệc / Sự kiện",
-      "Đi học"
+      "Du lịch"
     ],
-    "likes": 349,
-    "isNew": false,
-    "description": "Tóc tém ngắn gọn, cá tính, dễ chăm sóc.",
-    "imageUrl": "",
-    "colors": [
-      {
-        "name": "Đen",
-        "hex": "#26262B",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đỏ",
-        "hex": "#8E1B3A",
-        "imageUrl": ""
-      },
-      {
-        "name": "Nâu",
-        "hex": "#7B4B34",
-        "imageUrl": ""
-      },
-      {
-        "name": "Vàng",
-        "hex": "#D4A24C",
-        "imageUrl": ""
-      }
-    ]
-  },
-  {
-    "id": "bob-ngan",
-    "name": "Bob Ngắn",
-    "length": "Tóc ngắn",
-    "styleType": [
-      "Bob"
-    ],
-    "occasions": [
-      "Du lịch",
-      "Hằng ngày"
-    ],
-    "likes": 674,
-    "isNew": false,
-    "description": "Bob ngắn ngang cằm, đuôi tóc gọn gàng và hiện đại.",
-    "imageUrl": "https://res.cloudinary.com/civ4h7ce/image/upload/v1793446632/kkkk.jpg",
-    "colors": [
-      {
-        "name": "Đỏ",
-        "hex": "#8E1B3A",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đen",
-        "hex": "#26262B",
-        "imageUrl": ""
-      },
-      {
-        "name": "Nâu",
-        "hex": "#7B4B34",
-        "imageUrl": ""
-      },
-      {
-        "name": "Vàng",
-        "hex": "#D4A24C",
-        "imageUrl": ""
-      }
-    ]
-  },
-  {
-    "id": "short-layer",
-    "name": "Short Layer",
-    "length": "Tóc ngắn",
-    "styleType": [
-      "Layer"
-    ],
-    "occasions": [
-      "Du lịch",
-      "Đi làm"
-    ],
-    "likes": 338,
-    "isNew": false,
-    "description": "Tóc ngắn cắt layer, tạo độ phồng và chuyển động nhẹ.",
-    "imageUrl": "",
+    "likes": 85,
+    "isNew": true,
+    "description": "Pixie kết hợp các lớp tóc trên đỉnh đầu tạo độ phồng mềm, giúp tổng thể nhẹ nhàng nhưng vẫn năng động.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467347/Pixie_bo%CC%82%CC%80ng_be%CC%82%CC%80nh_-_NA%CC%82U.webp",
     "colors": [
       {
         "name": "Nâu",
         "hex": "#7B4B34",
-        "imageUrl": ""
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467338/Pixie_bo%CC%82%CC%80ng_be%CC%82%CC%80nh_-_%C4%90EN.jpg"
       },
       {
         "name": "Đen",
         "hex": "#26262B",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đỏ",
-        "hex": "#8E1B3A",
-        "imageUrl": ""
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467347/Pixie_bo%CC%82%CC%80ng_be%CC%82%CC%80nh_-_NA%CC%82U.webp"
       },
       {
         "name": "Vàng",
         "hex": "#D4A24C",
-        "imageUrl": ""
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467351/Pixie_bo%CC%82%CC%80ng_be%CC%82%CC%80nh_-_VA%CC%80NG.jpg"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467342/Pixie_bo%CC%82%CC%80ng_be%CC%82%CC%80nh_-_%C4%90O%CC%89.webp"
       }
     ]
   },
   {
-    "id": "short-wolf-cut",
-    "name": "Short Wolf Cut",
+    "id": "pixie-ca-tinh",
+    "name": "Pixie cá tính",
     "length": "Tóc ngắn",
     "styleType": [
-      "Wolf Cut"
+      "Tóc tém"
     ],
     "occasions": [
       "Tiệc / Sự kiện",
       "Du lịch"
     ],
-    "likes": 371,
+    "likes": 82,
     "isNew": true,
-    "description": "Wolf cut ngắn nhiều tầng, phong cách cá tính.",
-    "imageUrl": "",
+    "description": "Pixie cá tính nhấn vào kết cấu tỉa phá cách, các lớp tóc sắc nét và diện mạo nổi bật.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467463/Pixie_ca%CC%81_ti%CC%81nh_-_%C4%90EN.webp",
     "colors": [
       {
-        "name": "Vàng",
-        "hex": "#D4A24C",
-        "imageUrl": ""
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467465/Pixie_ca%CC%81_ti%CC%81nh_-_%C4%90OE%CC%89.jpg"
       },
       {
         "name": "Đen",
         "hex": "#26262B",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đỏ",
-        "hex": "#8E1B3A",
-        "imageUrl": ""
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467463/Pixie_ca%CC%81_ti%CC%81nh_-_%C4%90EN.webp"
       },
       {
         "name": "Nâu",
         "hex": "#7B4B34",
-        "imageUrl": ""
-      }
-    ]
-  },
-  {
-    "id": "toc-uon-ngan",
-    "name": "Tóc Uốn Ngắn",
-    "length": "Tóc ngắn",
-    "styleType": [
-      "Tóc uốn"
-    ],
-    "occasions": [
-      "Hằng ngày",
-      "Tiệc / Sự kiện"
-    ],
-    "likes": 360,
-    "isNew": false,
-    "description": "Tóc ngắn uốn xoăn nhẹ, tạo độ bồng bềnh.",
-    "imageUrl": "",
-    "colors": [
-      {
-        "name": "Nâu",
-        "hex": "#7B4B34",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đen",
-        "hex": "#26262B",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đỏ",
-        "hex": "#8E1B3A",
-        "imageUrl": ""
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467470/Pixie_ca%CC%81_ti%CC%81nh_-_NA%CC%82U.webp"
       },
       {
         "name": "Vàng",
         "hex": "#D4A24C",
-        "imageUrl": ""
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467474/Pixie_ca%CC%81_ti%CC%81nh_-_VA%CC%80NG.jpg"
       }
     ]
   },
   {
-    "id": "toc-thang-ngan",
-    "name": "Tóc Thẳng Ngắn",
-    "length": "Tóc ngắn",
-    "styleType": [
-      "Tóc thẳng"
-    ],
-    "occasions": [
-      "Đi làm",
-      "Hằng ngày"
-    ],
-    "likes": 890,
-    "isNew": false,
-    "description": "Tóc thẳng ngắn cắt gọn, thanh lịch và dễ tạo kiểu.",
-    "imageUrl": "",
-    "colors": [
-      {
-        "name": "Đen",
-        "hex": "#26262B",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đỏ",
-        "hex": "#8E1B3A",
-        "imageUrl": ""
-      },
-      {
-        "name": "Nâu",
-        "hex": "#7B4B34",
-        "imageUrl": ""
-      },
-      {
-        "name": "Vàng",
-        "hex": "#D4A24C",
-        "imageUrl": ""
-      }
-    ]
-  },
-  {
-    "id": "bob-ngang-vai",
-    "name": "Bob Ngang Vai",
+    "id": "toc-lob",
+    "name": "Tóc Lob",
     "length": "Tóc ngang vai",
     "styleType": [
       "Bob"
     ],
     "occasions": [
-      "Hằng ngày",
-      "Đi làm",
-      "Du lịch"
-    ],
-    "likes": 870,
-    "isNew": false,
-    "description": "Bob dài ngang vai, thanh lịch và dễ ứng dụng.",
-    "imageUrl": "",
-    "colors": [
-      {
-        "name": "Nâu",
-        "hex": "#7B4B34",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đen",
-        "hex": "#26262B",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đỏ",
-        "hex": "#8E1B3A",
-        "imageUrl": ""
-      },
-      {
-        "name": "Vàng",
-        "hex": "#D4A24C",
-        "imageUrl": ""
-      }
-    ]
-  },
-  {
-    "id": "layer-ngang-vai",
-    "name": "Layer Ngang Vai",
-    "length": "Tóc ngang vai",
-    "styleType": [
-      "Layer"
-    ],
-    "occasions": [
-      "Đi học",
-      "Tiệc / Sự kiện"
-    ],
-    "likes": 447,
-    "isNew": false,
-    "description": "Layer ngang vai, tóc nhẹ và có độ bay tự nhiên.",
-    "imageUrl": "",
-    "colors": [
-      {
-        "name": "Vàng",
-        "hex": "#D4A24C",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đen",
-        "hex": "#26262B",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đỏ",
-        "hex": "#8E1B3A",
-        "imageUrl": ""
-      },
-      {
-        "name": "Nâu",
-        "hex": "#7B4B34",
-        "imageUrl": ""
-      }
-    ]
-  },
-  {
-    "id": "wolf-cut-ngang-vai",
-    "name": "Wolf Cut Ngang Vai",
-    "length": "Tóc ngang vai",
-    "styleType": [
-      "Wolf Cut"
-    ],
-    "occasions": [
-      "Du lịch",
-      "Đi học"
-    ],
-    "likes": 873,
-    "isNew": false,
-    "description": "Wolf cut ngang vai, nhiều tầng và hơi rối tự nhiên.",
-    "imageUrl": "",
-    "colors": [
-      {
-        "name": "Đỏ",
-        "hex": "#8E1B3A",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đen",
-        "hex": "#26262B",
-        "imageUrl": ""
-      },
-      {
-        "name": "Nâu",
-        "hex": "#7B4B34",
-        "imageUrl": ""
-      },
-      {
-        "name": "Vàng",
-        "hex": "#D4A24C",
-        "imageUrl": ""
-      }
-    ]
-  },
-  {
-    "id": "hush-cut-ngang-vai",
-    "name": "Hush Cut Ngang Vai",
-    "length": "Tóc ngang vai",
-    "styleType": [
-      "Hush Cut"
-    ],
-    "occasions": [
-      "Hằng ngày",
-      "Đi làm"
-    ],
-    "likes": 681,
-    "isNew": false,
-    "description": "Hush cut kèm mái thưa, phong cách tự nhiên.",
-    "imageUrl": "",
-    "colors": [
-      {
-        "name": "Nâu",
-        "hex": "#7B4B34",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đen",
-        "hex": "#26262B",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đỏ",
-        "hex": "#8E1B3A",
-        "imageUrl": ""
-      },
-      {
-        "name": "Vàng",
-        "hex": "#D4A24C",
-        "imageUrl": ""
-      }
-    ]
-  },
-  {
-    "id": "toc-uon-ngang-vai",
-    "name": "Tóc Uốn Ngang Vai",
-    "length": "Tóc ngang vai",
-    "styleType": [
-      "Tóc uốn"
-    ],
-    "occasions": [
-      "Du lịch",
-      "Hằng ngày"
-    ],
-    "likes": 877,
-    "isNew": false,
-    "description": "Tóc uốn ngang vai, nữ tính và nhiều độ phồng.",
-    "imageUrl": "",
-    "colors": [
-      {
-        "name": "Đen",
-        "hex": "#26262B",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đỏ",
-        "hex": "#8E1B3A",
-        "imageUrl": ""
-      },
-      {
-        "name": "Nâu",
-        "hex": "#7B4B34",
-        "imageUrl": ""
-      },
-      {
-        "name": "Vàng",
-        "hex": "#D4A24C",
-        "imageUrl": ""
-      }
-    ]
-  },
-  {
-    "id": "toc-thang-ngang-vai",
-    "name": "Tóc Thẳng Ngang Vai",
-    "length": "Tóc ngang vai",
-    "styleType": [
-      "Tóc thẳng"
-    ],
-    "occasions": [
-      "Du lịch",
-      "Đi làm"
-    ],
-    "likes": 808,
-    "isNew": false,
-    "description": "Tóc thẳng mượt ngang vai, gọn gàng.",
-    "imageUrl": "",
-    "colors": [
-      {
-        "name": "Đỏ",
-        "hex": "#8E1B3A",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đen",
-        "hex": "#26262B",
-        "imageUrl": ""
-      },
-      {
-        "name": "Nâu",
-        "hex": "#7B4B34",
-        "imageUrl": ""
-      },
-      {
-        "name": "Vàng",
-        "hex": "#D4A24C",
-        "imageUrl": ""
-      }
-    ]
-  },
-  {
-    "id": "long-layer",
-    "name": "Long Layer",
-    "length": "Tóc dài",
-    "styleType": [
-      "Layer"
-    ],
-    "occasions": [
-      "Đi học",
-      "Tiệc / Sự kiện",
-      "Du lịch"
-    ],
-    "likes": 764,
-    "isNew": false,
-    "description": "Tóc dài cắt layer mềm, nhẹ và có chuyển động.",
-    "imageUrl": "",
-    "colors": [
-      {
-        "name": "Đen",
-        "hex": "#26262B",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đỏ",
-        "hex": "#8E1B3A",
-        "imageUrl": ""
-      },
-      {
-        "name": "Nâu",
-        "hex": "#7B4B34",
-        "imageUrl": ""
-      },
-      {
-        "name": "Vàng",
-        "hex": "#D4A24C",
-        "imageUrl": ""
-      }
-    ]
-  },
-  {
-    "id": "soft-wolf-cut",
-    "name": "Soft Wolf Cut",
-    "length": "Tóc dài",
-    "styleType": [
-      "Wolf Cut"
-    ],
-    "occasions": [
-      "Đi học",
       "Đi làm",
       "Hằng ngày"
     ],
-    "likes": 549,
-    "isNew": true,
-    "description": "Wolf cut mềm mại cho tóc dài, nhiều tầng ở đỉnh đầu.",
-    "imageUrl": "",
+    "likes": 90,
+    "isNew": false,
+    "description": "Tóc Lob (Long Bob) dài đến vai hoặc gần vai, cân bằng giữa nét thanh lịch và sự linh hoạt khi tạo kiểu.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467575/To%CC%81c_Lob_-_%C4%90EN.jpg",
     "colors": [
       {
         "name": "Nâu",
         "hex": "#7B4B34",
-        "imageUrl": ""
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467586/To%CC%81c_Lob_-_NA%CC%82U.webp"
       },
       {
         "name": "Đen",
         "hex": "#26262B",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đỏ",
-        "hex": "#8E1B3A",
-        "imageUrl": ""
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467575/To%CC%81c_Lob_-_%C4%90EN.jpg"
       },
       {
         "name": "Vàng",
         "hex": "#D4A24C",
-        "imageUrl": ""
-      }
-    ]
-  },
-  {
-    "id": "hush-cut-dai",
-    "name": "Hush Cut Dài",
-    "length": "Tóc dài",
-    "styleType": [
-      "Hush Cut"
-    ],
-    "occasions": [
-      "Du lịch",
-      "Đi học"
-    ],
-    "likes": 837,
-    "isNew": true,
-    "description": "Hush cut cho tóc dài, layer rối nhẹ kèm mái thưa.",
-    "imageUrl": "",
-    "colors": [
-      {
-        "name": "Vàng",
-        "hex": "#D4A24C",
-        "imageUrl": ""
-      },
-      {
-        "name": "Đen",
-        "hex": "#26262B",
-        "imageUrl": ""
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467586/To%CC%81c_Lob_-_NA%CC%82U.webp"
       },
       {
         "name": "Đỏ",
         "hex": "#8E1B3A",
-        "imageUrl": ""
-      },
-      {
-        "name": "Nâu",
-        "hex": "#7B4B34",
-        "imageUrl": ""
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467580/To%CC%81c_Lob_-_%C4%90O%CC%89.webp"
       }
     ]
   },
   {
-    "id": "toc-uon-song-dai",
-    "name": "Tóc Uốn Sóng Dài",
-    "length": "Tóc dài",
+    "id": "toc-ngan-uon-song-loi-han-quoc",
+    "name": "Tóc ngắn uốn sóng lơi Hàn Quốc",
+    "length": "Tóc ngắn",
     "styleType": [
       "Tóc uốn"
     ],
     "occasions": [
       "Đi học",
-      "Tiệc / Sự kiện",
-      "Đi làm"
+      "Hằng ngày",
+      "Du lịch"
     ],
-    "likes": 923,
-    "isNew": true,
-    "description": "Tóc dài uốn sóng nhẹ, bồng bềnh và nữ tính.",
-    "imageUrl": "",
+    "likes": 90,
+    "isNew": false,
+    "description": "Tóc ngắn uốn sóng lơi nhẹ theo phong cách Hàn Quốc, tạo độ bồng tự nhiên và vẻ ngoài dịu dàng.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467672/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_so%CC%81ng_lo%CC%9Bi_Ha%CC%80n_Quo%CC%82%CC%81c_-_%C4%90EN.jpg",
     "colors": [
       {
-        "name": "Đỏ",
-        "hex": "#8E1B3A",
-        "imageUrl": ""
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467692/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_so%CC%81ng_lo%CC%9Bi_Ha%CC%80n_Quo%CC%82%CC%81c_-_NA%CC%82U.png"
       },
       {
         "name": "Đen",
         "hex": "#26262B",
-        "imageUrl": ""
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467672/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_so%CC%81ng_lo%CC%9Bi_Ha%CC%80n_Quo%CC%82%CC%81c_-_%C4%90EN.jpg"
       },
       {
-        "name": "Nâu",
-        "hex": "#7B4B34",
-        "imageUrl": ""
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467675/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_so%CC%81ng_lo%CC%9Bi_Ha%CC%80n_Quo%CC%82%CC%81c_-_%C4%90O%CC%89.webp"
       },
       {
         "name": "Vàng",
         "hex": "#D4A24C",
-        "imageUrl": ""
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467684/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_so%CC%81ng_lo%CC%9Bi_Ha%CC%80n_Quo%CC%82%CC%81c_-_VA%CC%80NG.jpg"
       }
     ]
   },
   {
-    "id": "toc-thang-dai",
-    "name": "Tóc Thẳng Dài",
-    "length": "Tóc dài",
+    "id": "toc-ngan-uon-xu-dua-short-hippie",
+    "name": "Tóc ngắn uốn xù đũa (Short Hippie)",
+    "length": "Tóc ngắn",
     "styleType": [
-      "Tóc thẳng"
+      "Tóc uốn"
     ],
     "occasions": [
-      "Hằng ngày",
-      "Tiệc / Sự kiện"
+      "Tiệc / Sự kiện",
+      "Du lịch"
     ],
-    "likes": 468,
-    "isNew": false,
-    "description": "Tóc dài thẳng mượt, sang trọng và gọn gàng.",
-    "imageUrl": "",
+    "likes": 83,
+    "isNew": true,
+    "description": "Tóc ngắn uốn những lọn nhỏ kiểu Short Hippie, tạo kết cấu xù bồng vui mắt và phong cách phóng khoáng.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467842/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_xu%CC%80_%C4%91u%CC%83a_Short_Hippie_-_VA%CC%80NG.jpg",
     "colors": [
       {
-        "name": "Đen",
-        "hex": "#26262B",
-        "imageUrl": ""
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467835/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_xu%CC%80_%C4%91u%CC%83a_Short_Hippie_-_NA%CC%82U.webp"
       },
       {
         "name": "Đỏ",
         "hex": "#8E1B3A",
-        "imageUrl": ""
-      },
-      {
-        "name": "Nâu",
-        "hex": "#7B4B34",
-        "imageUrl": ""
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467833/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_xu%CC%80_%C4%91u%CC%83a_Short_Hippie_-_%C4%90O%CC%89.webp"
       },
       {
         "name": "Vàng",
         "hex": "#D4A24C",
-        "imageUrl": ""
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467842/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_xu%CC%80_%C4%91u%CC%83a_Short_Hippie_-_VA%CC%80NG.jpg"
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467826/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_xu%CC%80_%C4%91u%CC%83a_Short_Hippie_-_%C4%90EN.jpg"
+      }
+    ]
+  },
+  {
+    "id": "toc-ngan-uon-venh-duoi",
+    "name": "Tóc ngắn uốn vểnh đuôi cá tính",
+    "length": "Tóc ngắn",
+    "styleType": [
+      "Tóc uốn"
+    ],
+    "occasions": [
+      "Du lịch",
+      "Tiệc / Sự kiện"
+    ],
+    "likes": 81,
+    "isNew": true,
+    "description": "Phần đuôi tóc ngắn được uốn vểnh ra ngoài, tạo điểm nhấn tinh nghịch, trẻ trung và khác biệt.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467953/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_ve%CC%82%CC%89nh_%C4%91uo%CC%82i_ca%CC%81_ti%CC%81nh_-_VA%CC%80NG.webp",
+    "colors": [
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467944/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_ve%CC%82%CC%89nh_%C4%91uo%CC%82i_ca%CC%81_ti%CC%81nh_-_%C4%90O%CC%89.webp"
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467940/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_ve%CC%82%CC%89nh_%C4%91uo%CC%82i_ca%CC%81_ti%CC%81nh_-_%C4%90EN.webp"
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467948/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_ve%CC%82%CC%89nh_%C4%91uo%CC%82i_ca%CC%81_ti%CC%81nh_-_NA%CC%82U.webp"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467953/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_ve%CC%82%CC%89nh_%C4%91uo%CC%82i_ca%CC%81_ti%CC%81nh_-_VA%CC%80NG.webp"
+      }
+    ]
+  },
+  {
+    "id": "toc-ngan-mullet-layer",
+    "name": "Tóc ngắn tỉa Mullet / Mullet Layer",
+    "length": "Tóc ngắn",
+    "styleType": [
+      "Wolf Cut"
+    ],
+    "occasions": [
+      "Đi học",
+      "Du lịch"
+    ],
+    "likes": 86,
+    "isNew": true,
+    "description": "Tóc Mullet Layer ngắn tỉa nhiều tầng, phần trước gọn và phần sau dài hơn, mang phong cách phá cách.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468104/To%CC%81c_nga%CC%86%CC%81n_ti%CC%89a_Mullet___Mullet_Layer_-_%C4%90EN.webp",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468104/To%CC%81c_nga%CC%86%CC%81n_ti%CC%89a_Mullet___Mullet_Layer_-_%C4%90EN.webp"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468107/To%CC%81c_nga%CC%86%CC%81n_ti%CC%89a_Mullet___Mullet_Layer_-_%C4%90O%CC%89.jpg"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468116/To%CC%81c_nga%CC%86%CC%81n_ti%CC%89a_Mullet___Mullet_Layer_-_VA%CC%80NG.jpg"
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468111/To%CC%81c_nga%CC%86%CC%81n_ti%CC%89a_Mullet___Mullet_Layer_-_NA%CC%82U.webp"
+      }
+    ]
+  },
+  {
+    "id": "toc-ngan-micro-bangs-bob",
+    "name": "Tóc ngắn mái ngố (Micro Bangs Bob)",
+    "length": "Tóc ngắn",
+    "styleType": [
+      "Bob"
+    ],
+    "occasions": [
+      "Tiệc / Sự kiện",
+      "Du lịch"
+    ],
+    "likes": 84,
+    "isNew": true,
+    "description": "Tóc Bob ngắn kết hợp mái ngố siêu ngắn trên chân mày, tạo diện mạo ấn tượng và đậm chất thời trang.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468214/To%CC%81c_nga%CC%86%CC%81n_ma%CC%81i_ngo%CC%82%CC%81_-_%C4%90ENN.webp",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468214/To%CC%81c_nga%CC%86%CC%81n_ma%CC%81i_ngo%CC%82%CC%81_-_%C4%90ENN.webp"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468219/To%CC%81c_nga%CC%86%CC%81n_ma%CC%81i_ngo%CC%82%CC%81_-_%C4%90O%CC%89.jpg"
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468223/To%CC%81c_nga%CC%86%CC%81n_ma%CC%81i_ngo%CC%82%CC%81_-_NA%CC%82U.jpg"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468228/To%CC%81c_nga%CC%86%CC%81n_ma%CC%81i_ngo%CC%82%CC%81_-_VA%CC%80NH.jpg"
+      }
+    ]
+  },
+  {
+    "id": "toc-ngan-mai-bay",
+    "name": "Tóc ngắn mái bay",
+    "length": "Tóc ngắn",
+    "styleType": [
+      "Layer"
+    ],
+    "occasions": [
+      "Đi làm",
+      "Hằng ngày",
+      "Đi học"
+    ],
+    "likes": 89,
+    "isNew": false,
+    "description": "Tóc ngắn kết hợp mái bay nhẹ ôm hai bên gương mặt, giúp tổng thể mềm mại, thanh thoát và dễ chăm sóc.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468322/To%CC%81c_nga%CC%86%CC%81n_ma%CC%81i_bay_-_NA%CC%82U.webp",
+    "colors": [
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468322/To%CC%81c_nga%CC%86%CC%81n_ma%CC%81i_bay_-_NA%CC%82U.webp"
+      },
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468314/To%CC%81c_nga%CC%86%CC%81n_ma%CC%81i_bay_-_%C4%90EN.webp"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468327/To%CC%81c_nga%CC%86%CC%81n_ma%CC%81i_bay_-_VA%CC%80NG.webp"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468318/To%CC%81c_nga%CC%86%CC%81n_ma%CC%81i_bay_-_%C4%90O%CC%89.jpg"
+      }
+    ]
+  },
+  {
+    "id": "toc-ngan-hime-cat-bang",
+    "name": "Tóc ngắn Hime cắt bằng hai bên",
+    "length": "Tóc ngắn",
+    "styleType": [
+      "Tóc thẳng"
+    ],
+    "occasions": [
+      "Du lịch",
+      "Tiệc / Sự kiện"
+    ],
+    "likes": 82,
+    "isNew": true,
+    "description": "Tóc ngắn Hime có hai phần tóc bên mặt cắt bằng rõ nét theo cảm hứng Nhật Bản, tạo cá tính riêng.",
+    "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468408/To%CC%81c_nga%CC%86%CC%81n_Hime_ca%CC%86%CC%81t_ba%CC%86%CC%80ng_hai_be%CC%82n_-_%C4%90EN.jpg",
+    "colors": [
+      {
+        "name": "Đen",
+        "hex": "#26262B",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468408/To%CC%81c_nga%CC%86%CC%81n_Hime_ca%CC%86%CC%81t_ba%CC%86%CC%80ng_hai_be%CC%82n_-_%C4%90EN.jpg"
+      },
+      {
+        "name": "Đỏ",
+        "hex": "#8E1B3A",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468413/To%CC%81c_nga%CC%86%CC%81n_Hime_ca%CC%86%CC%81t_ba%CC%86%CC%80ng_hai_be%CC%82n_-_%C4%90O%CC%89.jpg"
+      },
+      {
+        "name": "Nâu",
+        "hex": "#7B4B34",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468417/To%CC%81c_nga%CC%86%CC%81n_Hime_ca%CC%86%CC%81t_ba%CC%86%CC%80ng_hai_be%CC%82n_-_NA%CC%82U.jpg"
+      },
+      {
+        "name": "Vàng",
+        "hex": "#D4A24C",
+        "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468422/To%CC%81c_nga%CC%86%CC%81n_Hime_ca%CC%86%CC%81t_ba%CC%86%CC%80ng_hai_be%CC%82n_-_VA%CC%80NG.jpg"
       }
     ]
   }

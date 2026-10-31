@@ -7,22 +7,19 @@ import '../../app/data/hair_style.dart';
 import '../../app/theme.dart';
 import 'gallery_widgets.dart';
 
-/// Các góc chụp của một mẫu (ảnh tạm, khi có ảnh thật thì thay bằng list ảnh).
-const _angles = [
-  Icons.face_3,
-  Icons.face_2,
-  Icons.face_4,
-  Icons.face_5,
-  Icons.face_6,
-  Icons.face,
-];
-
-/// Chi tiết mẫu tóc: ảnh, mô tả, giá, chọn màu, tùy biến nhanh, mẫu tương tự.
+/// Chi tiết mẫu tóc: ảnh, mô tả, giá, chọn màu, mẫu tương tự.
 /// Mở từ trang Mẫu qua route /styles/:id, vẫn giữ thanh menu dưới.
 class HairStyleDetailScreen extends StatefulWidget {
-  const HairStyleDetailScreen({super.key, required this.styleId});
+  const HairStyleDetailScreen({
+    super.key,
+    required this.styleId,
+    this.initialColor,
+  });
 
   final String styleId;
+
+  /// Màu chọn sẵn khi mở (màu đang xem ở danh sách). Bỏ trống thì dùng màu mặc định.
+  final HairColor? initialColor;
 
   @override
   State<HairStyleDetailScreen> createState() => _HairStyleDetailScreenState();
@@ -33,19 +30,7 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
       .where((s) => s.id == widget.styleId)
       .firstOrNull;
 
-  int _angle = 0;
-  late HairColor _color = _style!.color;
-  late String _length = switch (_style!.length) {
-    HairLength.short => 'Ngắn',
-    HairLength.medium => 'Vừa',
-    HairLength.long => 'Dài',
-  };
-  String _bangs = 'Mái thưa';
-  late String _texture = _style!.types.contains(HairType.curly)
-      ? 'Xoăn'
-      : _style.types.contains(HairType.straight)
-      ? 'Thẳng'
-      : 'Gợn sóng';
+  late HairColor _color = _style!.colorFor([?widget.initialColor]);
 
   void _back() {
     if (context.canPop()) {
@@ -118,8 +103,6 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
         children: [
           _buildMainImage(style),
-          const SizedBox(height: 10),
-          _buildAngles(),
           const SizedBox(height: 16),
           Text(style.name, style: AppTheme.titleFont(size: 26)),
           const SizedBox(height: 2),
@@ -159,25 +142,6 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
             subtitle: 'Khám phá sắc màu phù hợp với phong cách bạn yêu thích.',
           ),
           _buildColorPicker(style),
-          const _Heading('Tùy biến nhanh'),
-          _OptionGroup(
-            title: 'Độ dài tóc',
-            options: const ['Ngắn', 'Vừa', 'Dài'],
-            value: _length,
-            onChanged: (v) => setState(() => _length = v),
-          ),
-          _OptionGroup(
-            title: 'Kiểu mái',
-            options: const ['Mái thưa', 'Mái bay', 'Không mái'],
-            value: _bangs,
-            onChanged: (v) => setState(() => _bangs = v),
-          ),
-          _OptionGroup(
-            title: 'Kết cấu tóc',
-            options: const ['Thẳng', 'Gợn sóng', 'Xoăn'],
-            value: _texture,
-            onChanged: (v) => setState(() => _texture = v),
-          ),
           const _Heading('Có thể bạn cũng thích'),
           _buildSimilar(style),
         ],
@@ -196,9 +160,8 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
           children: [
             HairThumb(
               color: _color,
-              icon: _angles[_angle],
               iconSize: 120,
-              imageUrl: _angle == 0 ? style.imageFor(_color) : null,
+              imageUrl: style.imageFor(_color),
             ),
             if (style.isTrending)
               Positioned(
@@ -224,34 +187,6 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
                 ),
               ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAngles() {
-    return SizedBox(
-      height: 60,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _angles.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, i) => GestureDetector(
-          onTap: () => setState(() => _angle = i),
-          child: Container(
-            width: 56,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: _angle == i ? AppColors.teal : Colors.transparent,
-                width: 2,
-              ),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: HairThumb(color: _color, icon: _angles[i], iconSize: 28),
-            ),
-          ),
         ),
       ),
     );
@@ -487,72 +422,6 @@ class _InfoBox extends StatelessWidget {
           Text(
             text,
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Nhóm lựa chọn một trong nhiều (dạng radio) cho phần "Tùy biến nhanh".
-class _OptionGroup extends StatelessWidget {
-  const _OptionGroup({
-    required this.title,
-    required this.options,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String title;
-  final List<String> options;
-  final String value;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              for (final o in options)
-                Expanded(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: () => onChanged(o),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Row(
-                        children: [
-                          Icon(
-                            o == value
-                                ? Icons.radio_button_checked
-                                : Icons.radio_button_unchecked,
-                            size: 20,
-                            color: o == value
-                                ? AppColors.teal
-                                : AppColors.textGrey,
-                          ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              o,
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-            ],
           ),
         ],
       ),

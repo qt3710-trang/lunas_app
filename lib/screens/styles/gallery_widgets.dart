@@ -89,6 +89,7 @@ class HairStyleCard extends StatelessWidget {
     required this.isFavorite,
     required this.onFavorite,
     this.onTap,
+    this.color,
   });
 
   final HairStyle style;
@@ -96,8 +97,12 @@ class HairStyleCard extends StatelessWidget {
   final VoidCallback onFavorite;
   final VoidCallback? onTap;
 
+  /// Màu muốn hiện trên thẻ (ví dụ màu đang lọc). Bỏ trống thì dùng màu mặc định.
+  final HairColor? color;
+
   @override
   Widget build(BuildContext context) {
+    final shown = color ?? style.color;
     return Material(
       color: AppColors.card,
       borderRadius: BorderRadius.circular(16),
@@ -111,7 +116,7 @@ class HairStyleCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  HairThumb(color: style.color, imageUrl: style.thumbUrl),
+                  HairThumb(color: shown, imageUrl: style.imageFor(shown)),
                   Positioned(
                     top: 8,
                     right: 8,
@@ -138,7 +143,7 @@ class HairStyleCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  HairColorLabel(color: style.color),
+                  HairColorLabel(color: shown),
                 ],
               ),
             ),

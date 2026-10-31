@@ -90,9 +90,21 @@ class _StylesScreenState extends State<StylesScreen> {
             (!_collectionOnly || collectionStyles.contains(s.id)) &&
             (q.isEmpty ||
                 s.name.toLowerCase().contains(q) ||
-                s.color.label.toLowerCase().contains(q));
+                s.colors.any((c) => c.label.toLowerCase().contains(q)));
       }).toList(),
     );
+  }
+
+  /// Các màu người dùng đang tìm: màu chọn trong bộ lọc + màu gõ trong ô tìm kiếm.
+  /// Thẻ sẽ hiện ảnh đúng màu này thay vì màu mặc định của mẫu.
+  Set<HairColor> get _wantedColors {
+    final q = _query.toLowerCase();
+    return {
+      ..._filter.colors,
+      if (q.isNotEmpty)
+        for (final c in HairColor.values)
+          if (c.label.toLowerCase().contains(q)) c,
+    };
   }
 
   /// Mỗi điều kiện lọc đang bật thành một chip có nút × để bỏ riêng.
@@ -143,7 +155,8 @@ class _StylesScreenState extends State<StylesScreen> {
     if (result != null) setState(() => _filter = result);
   }
 
-  void _openStyle(HairStyle s) => context.push('/styles/${s.id}');
+  void _openStyle(HairStyle s, HairColor color) =>
+      context.push('/styles/${s.id}?color=${color.name}');
 
   @override
   Widget build(BuildContext context) {
@@ -349,6 +362,7 @@ class _StylesScreenState extends State<StylesScreen> {
   }
 
   Widget _grid(List<HairStyle> items) {
+    final wanted = _wantedColors;
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       sliver: SliverGrid.builder(
@@ -361,11 +375,13 @@ class _StylesScreenState extends State<StylesScreen> {
         ),
         itemBuilder: (context, i) {
           final s = items[i];
+          final color = s.colorFor(wanted);
           return HairStyleCard(
             style: s,
+            color: color,
             isFavorite: favoriteStyles.contains(s.id),
             onFavorite: () => _toggleFavorite(s),
-            onTap: () => _openStyle(s),
+            onTap: () => _openStyle(s, color),
           );
         },
       ),

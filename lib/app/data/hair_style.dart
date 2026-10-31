@@ -141,6 +141,11 @@ class HairStyle {
   /// Ảnh hiện trên thẻ ở danh sách.
   String? get thumbUrl => imageFor(color);
 
+  /// Màu nên hiện khi người dùng đang tìm các màu [wanted]:
+  /// màu đầu tiên của mẫu nằm trong [wanted], không có thì dùng màu mặc định.
+  HairColor colorFor(Iterable<HairColor> wanted) =>
+      colors.where(wanted.contains).firstOrNull ?? color;
+
   /// Kiểu tóc chính, dùng để lấy mô tả / giá tạm.
   HairType get mainType => types.first;
 
