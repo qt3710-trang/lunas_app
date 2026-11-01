@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/data/booking_selection.dart';
 import '../../models/booking_models.dart';
@@ -1466,6 +1467,69 @@ class _SuccessContent extends StatelessWidget {
   final SalonSettings salonSettings;
   final VoidCallback onReset;
 
+  /// Link Google Calendar có điền sẵn sự kiện. Giờ ghi theo giờ treo tường
+  /// của salon kèm múi giờ (ctz), nên không bị lệch khi đổi múi giờ.
+  Uri _calendarUri() {
+    final parts = selectedTime.split(':');
+    final hour = int.parse(parts[0]);
+    final minute = int.parse(parts[1]);
+    // Dùng DateTime.utc chỉ để cộng thời lượng cho chính xác;
+    // các con số vẫn là giờ treo tường của salon.
+    final start = DateTime.utc(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+      hour,
+      minute,
+    );
+    final end = start.add(Duration(minutes: totalDuration));
+
+    final details = StringBuffer('Mã lịch hẹn: $bookingCode');
+    if (selectedServices.isNotEmpty) {
+      details.write(
+        '\nDịch vụ thêm: ${selectedServices.map((s) => s.name).join(', ')}',
+      );
+    }
+    details.write('\nTổng chi phí dự kiến: ${_formatMoney(totalPrice)}đ');
+
+    final address = salonSettings.address;
+    final location = address.isEmpty
+        ? salonSettings.salonName
+        : '${salonSettings.salonName}, $address';
+
+    return Uri.https('calendar.google.com', '/calendar/render', {
+      'action': 'TEMPLATE',
+      'text': '${salonSettings.salonName}: ${mainService.name}',
+      'dates': '${_calendarStamp(start)}/${_calendarStamp(end)}',
+      'details': details.toString(),
+      'location': location,
+      'ctz': salonSettings.timezone,
+    });
+  }
+
+  Future<void> _addToCalendar(BuildContext context) => _openExternal(
+    context,
+    _calendarUri(),
+    'Không mở được Google Calendar. Hãy thử lại sau.',
+  );
+
+  Future<void> _openDirections(BuildContext context) {
+    final address = salonSettings.address;
+    if (address.isEmpty) {
+      _showLocalMessage(context, 'Salon chưa có địa chỉ để chỉ đường.');
+      return Future.value();
+    }
+    final uri = Uri.https('www.google.com', '/maps/dir/', {
+      'api': '1',
+      'destination': address,
+    });
+    return _openExternal(
+      context,
+      uri,
+      'Không mở được Google Maps. Hãy thử lại sau.',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final date = _formatVietnameseDate(selectedDate);
@@ -1626,10 +1690,7 @@ class _SuccessContent extends StatelessWidget {
                   icon: Icons.calendar_month_outlined,
                   label: 'Thêm vào lịch',
                   expanded: true,
-                  onTap: () => _showLocalMessage(
-                    context,
-                    'Tính năng thêm vào lịch sẽ được bổ sung sau.',
-                  ),
+                  onTap: () => _addToCalendar(context),
                 ),
               ),
               const SizedBox(width: 9),
@@ -1638,10 +1699,7 @@ class _SuccessContent extends StatelessWidget {
                   icon: Icons.navigation,
                   label: 'Chỉ đường',
                   expanded: true,
-                  onTap: () => _showLocalMessage(
-                    context,
-                    'Bản đồ sẽ được kết nối ở giai đoạn sau.',
-                  ),
+                  onTap: () => _openDirections(context),
                 ),
               ),
             ],
@@ -1804,6 +1862,31 @@ class _StudioCard extends StatelessWidget {
             ),
           ],
         ),
+        if (settings.address.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          const Text(
+            'Địa chỉ',
+            style: TextStyle(fontSize: 11, color: _BookingScreenState._muted),
+          ),
+          const SizedBox(height: 7),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.location_on_outlined,
+                size: 14,
+                color: _BookingScreenState._teal,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  settings.address,
+                  style: const TextStyle(fontSize: 11, height: 1.35),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     ),
   );
@@ -1935,6 +2018,29 @@ class _OutlineAction extends StatelessWidget {
 
 void _showLocalMessage(BuildContext context, String message) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+}
+
+/// Mở một đường link ra ngoài app (Google Calendar, Google Maps...).
+/// Không mở được thì hiện thông báo thay vì báo lỗi.
+Future<void> _openExternal(
+  BuildContext context,
+  Uri uri,
+  String failMessage,
+) async {
+  var opened = false;
+  try {
+    opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  } catch (_) {
+    opened = false;
+  }
+  if (!opened && context.mounted) _showLocalMessage(context, failMessage);
+}
+
+/// Định dạng giờ cho Google Calendar: yyyyMMddTHHmmss (không có chữ Z).
+String _calendarStamp(DateTime value) {
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${value.year.toString().padLeft(4, '0')}${two(value.month)}${two(value.day)}'
+      'T${two(value.hour)}${two(value.minute)}${two(value.second)}';
 }
 
 String _formatVietnameseDate(DateTime date) {
