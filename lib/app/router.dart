@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 
+import 'data/hair_style.dart';
 import '../screens/ar_try/ar_try_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
@@ -73,8 +74,12 @@ final appRouter = GoRouter(
               // Chi tiết mẫu tóc, vẫn nằm trong tab Mẫu nên giữ thanh menu dưới.
               GoRoute(
                 path: ':id',
-                builder: (context, state) =>
-                    HairStyleDetailScreen(styleId: state.pathParameters['id']!),
+                // ?color=red: mở sẵn đúng màu đang xem ở danh sách.
+                builder: (context, state) => HairStyleDetailScreen(
+                  styleId: state.pathParameters['id']!,
+                  initialColor: HairColor.values
+                      .asNameMap()[state.uri.queryParameters['color']],
+                ),
               ),
             ],
           ),
