@@ -1,9 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="lunas_app"
+        android:label="LUNAS HAIR STUDIO"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/lunas_launcher"
         android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"

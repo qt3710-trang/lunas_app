@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../services/auth_service.dart';
-import '../../widgets/lunas_logo.dart';
 
 /// Màn Đăng nhập bằng số điện thoại + mật khẩu.
 /// Gọi AuthService.login() (Firebase Auth).
@@ -109,7 +108,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const LunasLogo(size: 0.7),
+                Center(
+                  child: Image.asset(
+                    'assets/branding/lunas_logo.png',
+                    width: 177.6,
+                    height: 177.6,
+                    fit: BoxFit.contain,
+                    semanticLabel: 'LUNAS Hair Studio',
+                  ),
+                ),
                 const SizedBox(height: 32),
                 Text(
                   'Chào mừng bạn trở lại!',
