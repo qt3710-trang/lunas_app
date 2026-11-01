@@ -6,24 +6,9 @@ import '../../app/data/collection_styles.dart';
 import '../../app/data/hair_style.dart';
 import '../../app/data/hair_style_api.dart';
 import '../../app/theme.dart';
+import '../shell/main_shell.dart' show tabReselected;
 import 'gallery_filter_sheet.dart';
 import 'gallery_widgets.dart';
-
-/// Danh mục kéo ngang ở đầu trang.
-class _Category {
-  const _Category(this.label, this.test);
-
-  final String label;
-  final bool Function(HairStyle) test;
-}
-
-final _categories = <_Category>[
-  _Category('Tất cả', (_) => true),
-  _Category('Tóc ngắn', (s) => s.length == HairLength.short),
-  _Category('Tóc dài', (s) => s.length == HairLength.long),
-  _Category('Layer', (s) => s.types.contains(HairType.layer)),
-  _Category('Tóc tém', (s) => s.types.contains(HairType.pixie)),
-];
 
 /// GD4: Mẫu – bộ sưu tập tóc xinh.
 /// Search, danh mục, lưới mẫu nổi bật, màu tóc nổi bật, cuộn để xem thêm.
@@ -43,7 +28,6 @@ class _StylesScreenState extends State<StylesScreen> {
   final _searchController = TextEditingController();
 
   String _query = '';
-  int _category = 0;
   GalleryFilter _filter = const GalleryFilter();
   bool _favoritesOnly = false;
   bool _collectionOnly = false;
@@ -58,6 +42,7 @@ class _StylesScreenState extends State<StylesScreen> {
     _scroll.addListener(_onScroll);
     favoriteStyles.addListener(_onFavoritesChanged);
     collectionStyles.addListener(_onFavoritesChanged);
+    tabReselected.addListener(_onTabReselected);
     loadHairStyles().then((ok) {
       if (ok && mounted) setState(() {});
     });
@@ -67,6 +52,7 @@ class _StylesScreenState extends State<StylesScreen> {
   void dispose() {
     favoriteStyles.removeListener(_onFavoritesChanged);
     collectionStyles.removeListener(_onFavoritesChanged);
+    tabReselected.removeListener(_onTabReselected);
     _scroll.dispose();
     _searchController.dispose();
     super.dispose();
@@ -75,7 +61,6 @@ class _StylesScreenState extends State<StylesScreen> {
   /// Đang tìm kiếm / lọc thì hiện một lưới kết quả duy nhất.
   bool get _isRefined =>
       _query.isNotEmpty ||
-      _category != 0 ||
       !_filter.isEmpty ||
       _favoritesOnly ||
       _collectionOnly;
@@ -84,8 +69,7 @@ class _StylesScreenState extends State<StylesScreen> {
     final q = _query.toLowerCase();
     return _filter.sorted(
       hairStyles.where((s) {
-        return _categories[_category].test(s) &&
-            _filter.matches(s) &&
+        return _filter.matches(s) &&
             (!_favoritesOnly || favoriteStyles.contains(s.id)) &&
             (!_collectionOnly || collectionStyles.contains(s.id)) &&
             (q.isEmpty ||
@@ -143,6 +127,30 @@ class _StylesScreenState extends State<StylesScreen> {
       _moreCount = (_moreCount + _pageSize).clamp(0, _moreTotal);
       _loadingMore = false;
     });
+  }
+
+  /// Bỏ hết điều kiện lọc, quay về trang duyệt mặc định.
+  void _resetBrowse() {
+    _searchController.clear();
+    setState(() {
+      _query = '';
+      _filter = const GalleryFilter();
+      _favoritesOnly = false;
+      _collectionOnly = false;
+    });
+  }
+
+  /// Bấm lại tab "Mẫu" ở thanh menu: về trang duyệt và cuộn lên đầu.
+  void _onTabReselected() {
+    if (tabReselected.index != 1) return;
+    _resetBrowse();
+    if (_scroll.hasClients) {
+      _scroll.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   // Danh sách đã lưu đổi (kể cả từ trang chi tiết) thì vẽ lại.
@@ -271,19 +279,38 @@ class _StylesScreenState extends State<StylesScreen> {
     );
   }
 
+  /// Hàng chip độ dài tóc. Chip chỉ là lối tắt của mục "Độ dài" trong bộ lọc
+  /// (dùng chung _filter.lengths) để hai nơi không lọc chồng lên nhau.
   Widget _buildCategories() {
+    final lengths = _filter.lengths;
     return SizedBox(
       height: 56,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
-        itemCount: _categories.length,
+        itemCount: HairLength.values.length + 1,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, i) => GalleryChip(
-          label: _categories[i].label,
-          selected: _category == i,
-          onTap: () => setState(() => _category = i),
-        ),
+        itemBuilder: (context, i) {
+          // "Tất cả" là nút quay về trang duyệt: bỏ luôn màu / bộ lọc / tìm kiếm.
+          if (i == 0) {
+            return GalleryChip(
+              label: 'Tất cả',
+              selected: !_isRefined,
+              onTap: _resetBrowse,
+            );
+          }
+          final len = HairLength.values[i - 1];
+          final selected = lengths.length == 1 && lengths.contains(len);
+          return GalleryChip(
+            label: len.label,
+            selected: selected,
+            onTap: () => setState(
+              () => _filter = _filter.copyWith(
+                lengths: selected ? const {} : {len},
+              ),
+            ),
+          );
+        },
       ),
     );
   }
