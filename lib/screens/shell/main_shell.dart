@@ -3,6 +3,19 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 
+/// Báo cho các tab biết người dùng vừa bấm lại tab đang mở
+/// (go_router không làm gì trong trường hợp này nên tab tự xử lý, ví dụ về đầu trang).
+class TabReselected extends ChangeNotifier {
+  int? index;
+
+  void fire(int i) {
+    index = i;
+    notifyListeners();
+  }
+}
+
+final tabReselected = TabReselected();
+
 /// Khung chứa 5 tab + thanh menu dưới, nút "Thử với AR" nổi ở giữa.
 class MainShell extends StatelessWidget {
   const MainShell({super.key, required this.navigationShell});
@@ -10,6 +23,7 @@ class MainShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
   void _goTab(int index) {
+    if (index == navigationShell.currentIndex) tabReselected.fire(index);
     // Bấm lại tab đang mở thì quay về đầu tab đó.
     navigationShell.goBranch(
       index,

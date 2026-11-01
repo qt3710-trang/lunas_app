@@ -117,8 +117,12 @@ class HairStyle {
     this.imageUrl,
     this.colorImages = const {},
     String? description,
+    String? duration,
+    String? price,
   }) : assert(colors.isNotEmpty),
-       _description = description;
+       _description = description,
+       _duration = duration,
+       _price = price;
 
   final String id;
   final String name;
@@ -131,6 +135,8 @@ class HairStyle {
   final String? imageUrl; // ảnh mặc định của mẫu
   final Map<HairColor, String> colorImages; // ảnh riêng theo từng màu (nếu có)
   final String? _description;
+  final String? _duration; // thời gian làm do server gửi (trống thì tự tính)
+  final String? _price; // giá do server gửi (trống thì tự tính)
 
   /// Màu mặc định (hiện ở danh sách). Giữ tên cũ để các màn khác không phải sửa.
   HairColor get color => colors.first;
@@ -185,7 +191,19 @@ class HairStyle {
     HairType.curly => ['Nữ tính', 'Bồng bềnh', 'Quyến rũ'],
   };
 
-  String get duration => types.contains(HairType.curly)
+  /// Thời gian làm: ưu tiên giá trị từ server (cột duration), trống thì tự tính.
+  String get duration {
+    final v = _duration?.trim();
+    return (v != null && v.isNotEmpty) ? v : _autoDuration;
+  }
+
+  /// Giá: ưu tiên giá trị từ server (cột price), trống thì tự tính.
+  String get price {
+    final v = _price?.trim();
+    return (v != null && v.isNotEmpty) ? v : _autoPrice;
+  }
+
+  String get _autoDuration => types.contains(HairType.curly)
       ? '90–120 phút'
       : switch (length) {
           HairLength.short => '30–45 phút',
@@ -193,7 +211,7 @@ class HairStyle {
           HairLength.long => '60–90 phút',
         };
 
-  String get price => switch (mainType) {
+  String get _autoPrice => switch (mainType) {
     HairType.pixie || HairType.bob || HairType.straight => 'Từ 180.000đ',
     HairType.layer => 'Từ 250.000đ',
     HairType.wolfCut || HairType.hushCut => 'Từ 300.000đ',
@@ -251,6 +269,8 @@ class HairStyle {
       imageUrl: url(j['imageUrl']),
       colorImages: colorImages,
       description: j['description']?.toString(),
+      duration: j['duration']?.toString(),
+      price: j['price']?.toString(),
     );
   }
 }

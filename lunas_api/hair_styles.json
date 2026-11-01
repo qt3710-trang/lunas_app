@@ -3,17 +3,13 @@
     "id": "toc-dai-tia-layer",
     "name": "Tóc dài tỉa Layer",
     "length": "Tóc dài",
-    "styleType": [
-      "Layer"
-    ],
-    "occasions": [
-      "Đi học",
-      "Đi làm",
-      "Hằng ngày"
-    ],
+    "styleType": ["Layer"],
+    "occasions": ["Đi học", "Đi làm", "Hằng ngày"],
     "likes": 93,
     "isNew": false,
     "description": "Tóc dài được tỉa nhiều lớp mềm mại, giúp mái tóc nhẹ hơn, ôm mặt tự nhiên và dễ tạo độ phồng.",
+    "duration": "60–90 phút",
+    "price": "Từ 750.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793463399/To%CC%81c_nga%CC%86%CC%81n_ti%CC%89a_Layer_-_NA%CC%82U.jpg",
     "colors": [
       {
@@ -42,17 +38,13 @@
     "id": "toc-dai-uon-song-loi",
     "name": "Tóc dài uốn sóng lơi",
     "length": "Tóc dài",
-    "styleType": [
-      "Tóc uốn"
-    ],
-    "occasions": [
-      "Hằng ngày",
-      "Du lịch",
-      "Tiệc / Sự kiện"
-    ],
+    "styleType": ["Tóc uốn"],
+    "occasions": ["Hằng ngày", "Du lịch", "Tiệc / Sự kiện"],
     "likes": 95,
     "isNew": false,
     "description": "Những gợn sóng lơi nhẹ chạy dọc thân tóc, mang lại vẻ nữ tính, phóng khoáng mà vẫn tự nhiên.",
+    "duration": "90–120 phút",
+    "price": "Từ 450.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793463687/DA%CC%80I_SO%CC%81NG_LO%CC%9BI_%C4%90EN.webp",
     "colors": [
       {
@@ -81,17 +73,13 @@
     "id": "toc-dai-thang-tu-nhien",
     "name": "Tóc dài thẳng tự nhiên",
     "length": "Tóc dài",
-    "styleType": [
-      "Tóc thẳng"
-    ],
-    "occasions": [
-      "Đi học",
-      "Đi làm",
-      "Hằng ngày"
-    ],
+    "styleType": ["Tóc thẳng"],
+    "occasions": ["Đi học", "Đi làm", "Hằng ngày"],
     "likes": 87,
     "isNew": false,
     "description": "Tóc dài giữ độ thẳng mượt tự nhiên, đường nét đơn giản, thanh lịch và dễ phối nhiều phong cách.",
+    "duration": "60–90 phút",
+    "price": "Từ 180.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464149/TO%CC%81C_DA%CC%80I_THA%CC%86%CC%89NG_TU%CC%9B%CC%A3_NHIE%CC%82N_VA%CC%80NG.jpg",
     "colors": [
       {
@@ -120,16 +108,13 @@
     "id": "toc-dai-uon-xoan-song-nuoc",
     "name": "Tóc dài uốn xoăn sóng nước",
     "length": "Tóc dài",
-    "styleType": [
-      "Tóc uốn"
-    ],
-    "occasions": [
-      "Tiệc / Sự kiện",
-      "Du lịch"
-    ],
+    "styleType": ["Tóc uốn"],
+    "occasions": ["Tiệc / Sự kiện", "Du lịch"],
     "likes": 90,
     "isNew": false,
     "description": "Lọn uốn dạng sóng nước đều và mềm, tạo chuyển động uyển chuyển cùng độ bồng bềnh cho tóc dài.",
+    "duration": "90–120 phút",
+    "price": "Từ 450.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464374/TO%CC%81C_DA%CC%80I_SO%CC%81NG_NU%CC%9BO%CC%9B%CC%81C_%C4%90EN.jpg",
     "colors": [
       {
@@ -158,16 +143,13 @@
     "id": "toc-dai-uon-xu-dua-hippie",
     "name": "Tóc dài uốn xù đũa (Hippie)",
     "length": "Tóc dài",
-    "styleType": [
-      "Tóc uốn"
-    ],
-    "occasions": [
-      "Du lịch",
-      "Tiệc / Sự kiện"
-    ],
+    "styleType": ["Tóc uốn"],
+    "occasions": ["Du lịch", "Tiệc / Sự kiện"],
     "likes": 83,
     "isNew": true,
     "description": "Tóc dài uốn lọn nhỏ kiểu Hippie, tạo độ xù bồng cá tính và phong cách tự do, nổi bật.",
+    "duration": "90–120 phút",
+    "price": "Từ 450.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793464817/TO%CC%81C_DA%CC%80I_XOA%CC%86N_%C4%90U%CC%83A_%C4%90EN.jpg",
     "colors": [
       {
@@ -196,16 +178,13 @@
     "id": "toc-dai-cup-duoi-chu-c",
     "name": "Tóc dài cúp đuôi chữ C",
     "length": "Tóc dài",
-    "styleType": [
-      "Tóc uốn"
-    ],
-    "occasions": [
-      "Đi làm",
-      "Hằng ngày"
-    ],
+    "styleType": ["Tóc uốn"],
+    "occasions": ["Đi làm", "Hằng ngày"],
     "likes": 89,
     "isNew": false,
     "description": "Phần đuôi tóc dài được uốn cụp thành chữ C, ôm nhẹ vào trong để tổng thể gọn gàng và dịu dàng.",
+    "duration": "90–120 phút",
+    "price": "Từ 450.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465100/To%CC%81c_da%CC%80i_cu%CC%81p_%C4%91uo%CC%82i_chu%CC%9B%CC%83_C_-_%C4%90EN.png",
     "colors": [
       {
@@ -234,17 +213,13 @@
     "id": "toc-dai-uon-chu-j",
     "name": "Tóc dài uốn chữ J",
     "length": "Tóc dài",
-    "styleType": [
-      "Tóc uốn"
-    ],
-    "occasions": [
-      "Đi học",
-      "Đi làm",
-      "Hằng ngày"
-    ],
+    "styleType": ["Tóc uốn"],
+    "occasions": ["Đi học", "Đi làm", "Hằng ngày"],
     "likes": 86,
     "isNew": false,
     "description": "Đuôi tóc dài uốn cong nhẹ hình chữ J, tạo điểm nhấn tinh tế mà không cần uốn xoăn toàn bộ.",
+    "duration": "90–120 phút",
+    "price": "Từ 450.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465291/To%CC%81c_da%CC%80i_uo%CC%82%CC%81n_chu%CC%9B%CC%83_J_-_%C4%91o%CC%89.jpg",
     "colors": [
       {
@@ -273,16 +248,13 @@
     "id": "toc-dai-uon-lon-to-lang-man",
     "name": "Tóc dài uốn lọn to lãng mạn",
     "length": "Tóc dài",
-    "styleType": [
-      "Tóc uốn"
-    ],
-    "occasions": [
-      "Tiệc / Sự kiện",
-      "Du lịch"
-    ],
+    "styleType": ["Tóc uốn"],
+    "occasions": ["Tiệc / Sự kiện", "Du lịch"],
     "likes": 88,
     "isNew": false,
     "description": "Những lọn xoăn to, mềm và bồng bềnh giúp tóc dài trông dày dặn, mang cảm giác lãng mạn.",
+    "duration": "90–120 phút",
+    "price": "Từ 450.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465455/To%CC%81c_da%CC%80i_uo%CC%82%CC%81n_lo%CC%A3n_to_-_%C4%90EN.webp",
     "colors": [
       {
@@ -311,17 +283,13 @@
     "id": "toc-dai-tia-wolf-cut",
     "name": "Tóc dài tỉa Wolf Cut",
     "length": "Tóc dài",
-    "styleType": [
-      "Wolf Cut"
-    ],
-    "occasions": [
-      "Đi học",
-      "Du lịch",
-      "Tiệc / Sự kiện"
-    ],
+    "styleType": ["Wolf Cut"],
+    "occasions": ["Đi học", "Du lịch", "Tiệc / Sự kiện"],
     "likes": 86,
     "isNew": true,
     "description": "Tóc dài tỉa tầng cao thấp rõ nét theo kiểu Wolf Cut, kết hợp sự phóng khoáng và chút nổi loạn.",
+    "duration": "60–90 phút",
+    "price": "Từ 300.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465640/To%CC%81c_da%CC%80i_ti%CC%89a_Wolf_Cut_-_%C4%90EN.jpg",
     "colors": [
       {
@@ -350,16 +318,13 @@
     "id": "toc-dai-duoi-thang-mai-bang",
     "name": "Tóc dài duỗi thẳng mái bằng",
     "length": "Tóc dài",
-    "styleType": [
-      "Tóc thẳng"
-    ],
-    "occasions": [
-      "Đi học",
-      "Hằng ngày"
-    ],
+    "styleType": ["Tóc thẳng"],
+    "occasions": ["Đi học", "Hằng ngày"],
     "likes": 85,
     "isNew": false,
     "description": "Mái bằng cắt ngang kết hợp tóc dài duỗi thẳng, tạo diện mạo trẻ trung, gọn gàng và sắc nét.",
+    "duration": "60–90 phút",
+    "price": "Từ 180.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793465936/To%CC%81c_da%CC%80i_duo%CC%82%CC%83i_tha%CC%86%CC%89ng_ma%CC%81i_ba%CC%86%CC%80ng_-_VA%CC%80NG.jpg",
     "colors": [
       {
@@ -388,17 +353,13 @@
     "id": "toc-dai-mai-bay-han-quoc",
     "name": "Tóc dài mái bay Hàn Quốc",
     "length": "Tóc dài",
-    "styleType": [
-      "Layer"
-    ],
-    "occasions": [
-      "Đi học",
-      "Đi làm",
-      "Hằng ngày"
-    ],
+    "styleType": ["Layer"],
+    "occasions": ["Đi học", "Đi làm", "Hằng ngày"],
     "likes": 94,
     "isNew": false,
     "description": "Phần mái bay ôm hai bên gương mặt kết hợp tóc dài, mang phong cách Hàn Quốc nhẹ nhàng, thanh thoát.",
+    "duration": "60–90 phút",
+    "price": "Từ 250.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468538/To%CC%81c_da%CC%80i_ma%CC%81i_bay_Ha%CC%80n_Quo%CC%82%CC%81c_-_NA%CC%82U.jpg",
     "colors": [
       {
@@ -427,16 +388,13 @@
     "id": "toc-dai-hime-nhat-ban",
     "name": "Tóc dài Hime Nhật Bản",
     "length": "Tóc dài",
-    "styleType": [
-      "Tóc thẳng"
-    ],
-    "occasions": [
-      "Du lịch",
-      "Tiệc / Sự kiện"
-    ],
+    "styleType": ["Tóc thẳng"],
+    "occasions": ["Du lịch", "Tiệc / Sự kiện"],
     "likes": 80,
     "isNew": true,
     "description": "Tóc dài Hime mang cảm hứng Nhật Bản với hai lọn tóc hai bên được cắt bằng, tạo đường nét ấn tượng.",
+    "duration": "60–90 phút",
+    "price": "Từ 180.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466303/To%CC%81c_da%CC%80i_Hime_Nha%CC%A3%CC%82t_Ba%CC%89n_-_VA%CC%80NH.jpg",
     "colors": [
       {
@@ -465,17 +423,13 @@
     "id": "toc-dai-hush-cut",
     "name": "Tóc dài Hush Cut",
     "length": "Tóc dài",
-    "styleType": [
-      "Hush Cut"
-    ],
-    "occasions": [
-      "Đi học",
-      "Đi làm",
-      "Du lịch"
-    ],
+    "styleType": ["Hush Cut"],
+    "occasions": ["Đi học", "Đi làm", "Du lịch"],
     "likes": 92,
     "isNew": true,
     "description": "Hush Cut dài với các tầng tóc mỏng, mềm và nhẹ, tạo hiệu ứng bồng bềnh tự nhiên quanh khuôn mặt.",
+    "duration": "60–90 phút",
+    "price": "Từ 300.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466464/To%CC%81c_da%CC%80i_Hush_Cut_-_VA%CC%80NG.jpg",
     "colors": [
       {
@@ -504,17 +458,13 @@
     "id": "toc-ngan-tia-layer",
     "name": "Tóc ngắn tỉa Layer",
     "length": "Tóc ngắn",
-    "styleType": [
-      "Layer"
-    ],
-    "occasions": [
-      "Đi học",
-      "Hằng ngày",
-      "Du lịch"
-    ],
+    "styleType": ["Layer"],
+    "occasions": ["Đi học", "Hằng ngày", "Du lịch"],
     "likes": 91,
     "isNew": false,
     "description": "Tóc ngắn tỉa nhiều lớp tạo độ phồng và chuyển động nhẹ, thích hợp phong cách năng động, hiện đại.",
+    "duration": "30–45 phút",
+    "price": "Từ 250.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466583/DA%CC%80I_LAYER_VA%CC%80NG.webp",
     "colors": [
       {
@@ -543,16 +493,13 @@
     "id": "toc-bob",
     "name": "Tóc Bob",
     "length": "Tóc ngắn",
-    "styleType": [
-      "Bob"
-    ],
-    "occasions": [
-      "Đi làm",
-      "Hằng ngày"
-    ],
+    "styleType": ["Bob"],
+    "occasions": ["Đi làm", "Hằng ngày"],
     "likes": 92,
     "isNew": false,
     "description": "Tóc Bob có phom gọn quanh cằm, cân đối, thanh lịch và dễ biến tấu khi tạo kiểu hằng ngày.",
+    "duration": "30–45 phút",
+    "price": "Từ 180.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466753/To%CC%81c_Bob_-_%C4%90O%CC%89.webp",
     "colors": [
       {
@@ -581,16 +528,13 @@
     "id": "bob-ngan",
     "name": "Bob ngắn",
     "length": "Tóc ngắn",
-    "styleType": [
-      "Bob"
-    ],
-    "occasions": [
-      "Đi học",
-      "Hằng ngày"
-    ],
+    "styleType": ["Bob"],
+    "occasions": ["Đi học", "Hằng ngày"],
     "likes": 88,
     "isNew": false,
     "description": "Bob ngắn được cắt cao, ôm sát phần gáy hoặc quanh quai hàm, mang lại vẻ gọn gàng và trẻ trung.",
+    "duration": "30–45 phút",
+    "price": "Từ 180.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466979/Bob_ba%CC%86%CC%80ng_-_VA%CC%80NG.jpg",
     "colors": [
       {
@@ -619,16 +563,13 @@
     "id": "bob-bang",
     "name": "Bob bằng",
     "length": "Tóc ngắn",
-    "styleType": [
-      "Bob"
-    ],
-    "occasions": [
-      "Đi làm",
-      "Tiệc / Sự kiện"
-    ],
+    "styleType": ["Bob"],
+    "occasions": ["Đi làm", "Tiệc / Sự kiện"],
     "likes": 86,
     "isNew": false,
     "description": "Bob bằng có đường cắt ngang rõ ràng, tạo phom tóc sắc nét, tối giản và thời thượng.",
+    "duration": "30–45 phút",
+    "price": "Từ 180.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793466976/Bob_ba%CC%86%CC%80ng_-_NA%CC%82U.jpg",
     "colors": [
       {
@@ -657,16 +598,13 @@
     "id": "short-bob",
     "name": "Short Bob",
     "length": "Tóc ngắn",
-    "styleType": [
-      "Bob"
-    ],
-    "occasions": [
-      "Du lịch",
-      "Hằng ngày"
-    ],
+    "styleType": ["Bob"],
+    "occasions": ["Du lịch", "Hằng ngày"],
     "likes": 84,
     "isNew": true,
     "description": "Short Bob là kiểu Bob có độ dài ngắn nổi bật, phom nhỏ gọn và đường nét hiện đại, cá tính.",
+    "duration": "30–45 phút",
+    "price": "Từ 180.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467092/Short_Bob_-_VA%CC%80NG.jpg",
     "colors": [
       {
@@ -695,17 +633,13 @@
     "id": "toc-ngang-vai-uon-cup-chu-c",
     "name": "Tóc ngắn ngang vai uốn cúp chữ C",
     "length": "Tóc ngang vai",
-    "styleType": [
-      "Tóc uốn"
-    ],
-    "occasions": [
-      "Đi làm",
-      "Hằng ngày",
-      "Đi học"
-    ],
+    "styleType": ["Tóc uốn"],
+    "occasions": ["Đi làm", "Hằng ngày", "Đi học"],
     "likes": 91,
     "isNew": false,
     "description": "Tóc ngang vai được uốn cụp chữ C ở phần đuôi, tạo cảm giác mềm mại và ôm gương mặt.",
+    "duration": "90–120 phút",
+    "price": "Từ 450.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468521/To%CC%81c_nga%CC%86%CC%81n_ngang_vai_uo%CC%82%CC%81n_cu%CC%81p_chu%CC%9B%CC%83_C_-_VA%CC%80NG.jpg",
     "colors": [
       {
@@ -734,16 +668,13 @@
     "id": "toc-tem-pixie",
     "name": "Tóc tém Pixie",
     "length": "Tóc ngắn",
-    "styleType": [
-      "Tóc tém"
-    ],
-    "occasions": [
-      "Hằng ngày",
-      "Du lịch"
-    ],
+    "styleType": ["Tóc tém"],
+    "occasions": ["Hằng ngày", "Du lịch"],
     "likes": 93,
     "isNew": false,
     "description": "Tóc tém Pixie cắt sát gọn hai bên và phía sau, tôn đường nét gương mặt cùng vẻ tự tin, cá tính.",
+    "duration": "30–45 phút",
+    "price": "Từ 180.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467227/To%CC%81c_te%CC%81m_Pixie_-_VA%CC%80NG.webp",
     "colors": [
       {
@@ -772,16 +703,13 @@
     "id": "pixie-bong-benh",
     "name": "Pixie bồng bềnh",
     "length": "Tóc ngắn",
-    "styleType": [
-      "Tóc tém"
-    ],
-    "occasions": [
-      "Đi làm",
-      "Du lịch"
-    ],
+    "styleType": ["Tóc tém"],
+    "occasions": ["Đi làm", "Du lịch"],
     "likes": 85,
     "isNew": true,
     "description": "Pixie kết hợp các lớp tóc trên đỉnh đầu tạo độ phồng mềm, giúp tổng thể nhẹ nhàng nhưng vẫn năng động.",
+    "duration": "30–45 phút",
+    "price": "Từ 180.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467347/Pixie_bo%CC%82%CC%80ng_be%CC%82%CC%80nh_-_NA%CC%82U.webp",
     "colors": [
       {
@@ -810,16 +738,13 @@
     "id": "pixie-ca-tinh",
     "name": "Pixie cá tính",
     "length": "Tóc ngắn",
-    "styleType": [
-      "Tóc tém"
-    ],
-    "occasions": [
-      "Tiệc / Sự kiện",
-      "Du lịch"
-    ],
+    "styleType": ["Tóc tém"],
+    "occasions": ["Tiệc / Sự kiện", "Du lịch"],
     "likes": 82,
     "isNew": true,
     "description": "Pixie cá tính nhấn vào kết cấu tỉa phá cách, các lớp tóc sắc nét và diện mạo nổi bật.",
+    "duration": "30–45 phút",
+    "price": "Từ 180.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467463/Pixie_ca%CC%81_ti%CC%81nh_-_%C4%90EN.webp",
     "colors": [
       {
@@ -848,16 +773,13 @@
     "id": "toc-lob",
     "name": "Tóc Lob",
     "length": "Tóc ngang vai",
-    "styleType": [
-      "Bob"
-    ],
-    "occasions": [
-      "Đi làm",
-      "Hằng ngày"
-    ],
+    "styleType": ["Bob"],
+    "occasions": ["Đi làm", "Hằng ngày"],
     "likes": 90,
     "isNew": false,
     "description": "Tóc Lob (Long Bob) dài đến vai hoặc gần vai, cân bằng giữa nét thanh lịch và sự linh hoạt khi tạo kiểu.",
+    "duration": "45–60 phút",
+    "price": "Từ 180.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467575/To%CC%81c_Lob_-_%C4%90EN.jpg",
     "colors": [
       {
@@ -886,17 +808,13 @@
     "id": "toc-ngan-uon-song-loi-han-quoc",
     "name": "Tóc ngắn uốn sóng lơi Hàn Quốc",
     "length": "Tóc ngắn",
-    "styleType": [
-      "Tóc uốn"
-    ],
-    "occasions": [
-      "Đi học",
-      "Hằng ngày",
-      "Du lịch"
-    ],
+    "styleType": ["Tóc uốn"],
+    "occasions": ["Đi học", "Hằng ngày", "Du lịch"],
     "likes": 90,
     "isNew": false,
     "description": "Tóc ngắn uốn sóng lơi nhẹ theo phong cách Hàn Quốc, tạo độ bồng tự nhiên và vẻ ngoài dịu dàng.",
+    "duration": "90–120 phút",
+    "price": "Từ 450.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467672/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_so%CC%81ng_lo%CC%9Bi_Ha%CC%80n_Quo%CC%82%CC%81c_-_%C4%90EN.jpg",
     "colors": [
       {
@@ -925,16 +843,13 @@
     "id": "toc-ngan-uon-xu-dua-short-hippie",
     "name": "Tóc ngắn uốn xù đũa (Short Hippie)",
     "length": "Tóc ngắn",
-    "styleType": [
-      "Tóc uốn"
-    ],
-    "occasions": [
-      "Tiệc / Sự kiện",
-      "Du lịch"
-    ],
+    "styleType": ["Tóc uốn"],
+    "occasions": ["Tiệc / Sự kiện", "Du lịch"],
     "likes": 83,
     "isNew": true,
     "description": "Tóc ngắn uốn những lọn nhỏ kiểu Short Hippie, tạo kết cấu xù bồng vui mắt và phong cách phóng khoáng.",
+    "duration": "90–120 phút",
+    "price": "Từ 450.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467842/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_xu%CC%80_%C4%91u%CC%83a_Short_Hippie_-_VA%CC%80NG.jpg",
     "colors": [
       {
@@ -963,16 +878,13 @@
     "id": "toc-ngan-uon-venh-duoi",
     "name": "Tóc ngắn uốn vểnh đuôi cá tính",
     "length": "Tóc ngắn",
-    "styleType": [
-      "Tóc uốn"
-    ],
-    "occasions": [
-      "Du lịch",
-      "Tiệc / Sự kiện"
-    ],
+    "styleType": ["Tóc uốn"],
+    "occasions": ["Du lịch", "Tiệc / Sự kiện"],
     "likes": 81,
     "isNew": true,
     "description": "Phần đuôi tóc ngắn được uốn vểnh ra ngoài, tạo điểm nhấn tinh nghịch, trẻ trung và khác biệt.",
+    "duration": "90–120 phút",
+    "price": "Từ 450.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793467953/To%CC%81c_nga%CC%86%CC%81n_uo%CC%82%CC%81n_ve%CC%82%CC%89nh_%C4%91uo%CC%82i_ca%CC%81_ti%CC%81nh_-_VA%CC%80NG.webp",
     "colors": [
       {
@@ -1001,16 +913,13 @@
     "id": "toc-ngan-mullet-layer",
     "name": "Tóc ngắn tỉa Mullet / Mullet Layer",
     "length": "Tóc ngắn",
-    "styleType": [
-      "Wolf Cut"
-    ],
-    "occasions": [
-      "Đi học",
-      "Du lịch"
-    ],
+    "styleType": ["Wolf Cut"],
+    "occasions": ["Đi học", "Du lịch"],
     "likes": 86,
     "isNew": true,
     "description": "Tóc Mullet Layer ngắn tỉa nhiều tầng, phần trước gọn và phần sau dài hơn, mang phong cách phá cách.",
+    "duration": "30–45 phút",
+    "price": "Từ 300.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468104/To%CC%81c_nga%CC%86%CC%81n_ti%CC%89a_Mullet___Mullet_Layer_-_%C4%90EN.webp",
     "colors": [
       {
@@ -1039,16 +948,13 @@
     "id": "toc-ngan-micro-bangs-bob",
     "name": "Tóc ngắn mái ngố (Micro Bangs Bob)",
     "length": "Tóc ngắn",
-    "styleType": [
-      "Bob"
-    ],
-    "occasions": [
-      "Tiệc / Sự kiện",
-      "Du lịch"
-    ],
+    "styleType": ["Bob"],
+    "occasions": ["Tiệc / Sự kiện", "Du lịch"],
     "likes": 84,
     "isNew": true,
     "description": "Tóc Bob ngắn kết hợp mái ngố siêu ngắn trên chân mày, tạo diện mạo ấn tượng và đậm chất thời trang.",
+    "duration": "30–45 phút",
+    "price": "Từ 180.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468214/To%CC%81c_nga%CC%86%CC%81n_ma%CC%81i_ngo%CC%82%CC%81_-_%C4%90ENN.webp",
     "colors": [
       {
@@ -1077,17 +983,13 @@
     "id": "toc-ngan-mai-bay",
     "name": "Tóc ngắn mái bay",
     "length": "Tóc ngắn",
-    "styleType": [
-      "Layer"
-    ],
-    "occasions": [
-      "Đi làm",
-      "Hằng ngày",
-      "Đi học"
-    ],
+    "styleType": ["Layer"],
+    "occasions": ["Đi làm", "Hằng ngày", "Đi học"],
     "likes": 89,
     "isNew": false,
     "description": "Tóc ngắn kết hợp mái bay nhẹ ôm hai bên gương mặt, giúp tổng thể mềm mại, thanh thoát và dễ chăm sóc.",
+    "duration": "30–45 phút",
+    "price": "Từ 250.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468322/To%CC%81c_nga%CC%86%CC%81n_ma%CC%81i_bay_-_NA%CC%82U.webp",
     "colors": [
       {
@@ -1116,16 +1018,13 @@
     "id": "toc-ngan-hime-cat-bang",
     "name": "Tóc ngắn Hime cắt bằng hai bên",
     "length": "Tóc ngắn",
-    "styleType": [
-      "Tóc thẳng"
-    ],
-    "occasions": [
-      "Du lịch",
-      "Tiệc / Sự kiện"
-    ],
+    "styleType": ["Tóc thẳng"],
+    "occasions": ["Du lịch", "Tiệc / Sự kiện"],
     "likes": 82,
     "isNew": true,
     "description": "Tóc ngắn Hime có hai phần tóc bên mặt cắt bằng rõ nét theo cảm hứng Nhật Bản, tạo cá tính riêng.",
+    "duration": "30–45 phút",
+    "price": "Từ 180.000đ",
     "imageUrl": "https://res.cloudinary.com/f7blqtfj/image/upload/v1793468408/To%CC%81c_nga%CC%86%CC%81n_Hime_ca%CC%86%CC%81t_ba%CC%86%CC%80ng_hai_be%CC%82n_-_%C4%90EN.jpg",
     "colors": [
       {
