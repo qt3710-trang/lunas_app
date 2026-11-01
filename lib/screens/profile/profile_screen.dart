@@ -77,6 +77,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _toast(message);
   }
 
+  /// Nút bánh răng: mở bảng Cài đặt, rồi làm theo lựa chọn.
+  Future<void> _openSettings(UserProfile profile) async {
+    final choice = await showSettingsSheet(context, profile);
+    if (!mounted || choice == null) return;
+
+    switch (choice) {
+      case SettingsChoice.editName:
+        final updated = await showEditNameDialog(context, profile);
+        if (!mounted) return;
+        await _saveProfile(updated, 'Đã đổi tên');
+      case SettingsChoice.changePassword:
+        final ok = await showChangePasswordDialog(context);
+        if (!mounted) return;
+        if (ok == true) _toast('Đã đổi mật khẩu');
+    }
+  }
+
   /// BÀI 7B: mở màn AI gợi ý. Mẫu lưu từ AI tự hiện ở "Mẫu đã lưu".
   Future<void> _openAi() async {
     await Navigator.of(context).push(
@@ -261,10 +278,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           IconButton(
-            onPressed: () async => _saveProfile(
-              await showEditNameDialog(context, profile),
-              'Đã đổi tên',
-            ),
+            onPressed: () => _openSettings(profile),
+            tooltip: 'Cài đặt tài khoản',
             icon: const Icon(Icons.settings_outlined),
           ),
         ],
