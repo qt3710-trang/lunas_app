@@ -53,6 +53,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  /// Tải lại lịch hẹn từ Firestore (sau khi đặt lịch mới, hoặc khi kéo để làm mới).
+  Future<void> _refreshAppointments() async {
+    final list = await _service.getAppointments();
+    if (!mounted) return;
+    setState(() => _appointments = list);
+  }
+
   void _toast(String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
@@ -168,10 +175,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
     if (ok != true) return;
-    await _service.cancelAppointment(a.id);
-    final list = await _service.getAppointments();
+
+    final success = await _service.cancelAppointment(a.id);
     if (!mounted) return;
-    setState(() => _appointments = list);
+    if (!success) {
+      _toast('Không hủy được lịch hẹn. Hãy kiểm tra kết nối rồi thử lại.');
+      return;
+    }
+    await _refreshAppointments();
+    if (!mounted) return;
     _toast('Đã hủy lịch hẹn ${a.code}');
   }
 
@@ -186,15 +198,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final profile = _profile!;
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildHeader(profile),
-            const SizedBox(height: 16),
-            _buildTabSwitcher(),
-            const SizedBox(height: 20),
-            if (_tab == 0) _buildSavedTab(profile) else _buildAppointmentsTab(),
-          ],
+        // Kéo xuống để tải lại lịch hẹn (ví dụ vừa đặt lịch ở tab Đặt lịch).
+        child: RefreshIndicator(
+          onRefresh: _refreshAppointments,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            children: [
+              _buildHeader(profile),
+              const SizedBox(height: 16),
+              _buildTabSwitcher(),
+              const SizedBox(height: 20),
+              if (_tab == 0) _buildSavedTab(profile) else _buildAppointmentsTab(),
+            ],
+          ),
         ),
       ),
     );
@@ -319,7 +336,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final selected = _tab == index;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _tab = index),
+        onTap: () {
+          setState(() => _tab = index);
+          // Mỗi lần bấm vào "Lịch hẹn" thì tải lại, để thấy lịch vừa đặt.
+          if (index == 1) _refreshAppointments();
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
