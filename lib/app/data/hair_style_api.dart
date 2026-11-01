@@ -1,8 +1,13 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'hair_style.dart';
+
+/// Tăng lên 1 mỗi khi [hairStyles] được thay bằng dữ liệu mới từ server.
+/// Màn hình nào cần tra tên / ảnh mẫu (ví dụ Hồ sơ) thì lắng nghe để vẽ lại.
+final hairStylesVersion = ValueNotifier<int>(0);
 
 /// Địa chỉ server API (lunas_api) đã đưa lên Vercel.
 /// Emulator và điện thoại thật đều dùng được, không cần bật server ở máy.
@@ -27,6 +32,7 @@ Future<bool> loadHairStyles() async {
     if (styles.isEmpty) return false;
 
     hairStyles = styles;
+    hairStylesVersion.value++;
     return true;
   } catch (_) {
     return false;

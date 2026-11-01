@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/data/favorite_styles.dart';
+import '../../app/data/hair_style_api.dart';
 import '../../app/theme.dart';
 import 'ai_suggest_screen.dart';   // BÀI 7B
 import 'profile_models.dart';
@@ -26,8 +27,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    // Danh sách tim có thể về SAU khi Hồ sơ đã mở (tải từ server chậm),
+    // lúc đó mới biết cần tải thêm kiểu tóc để tra tên + ảnh.
+    favoriteStyles.addListener(_onFavoritesChanged);
     _load();
   }
+
+  @override
+  void dispose() {
+    favoriteStyles.removeListener(_onFavoritesChanged);
+    super.dispose();
+  }
+
+  void _onFavoritesChanged() => _service.ensureHairStylesLoaded();
 
   Future<void> _load() async {
     final profile = await _service.getProfile();
@@ -336,9 +348,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         _sectionTitle('Mẫu tóc đã lưu', Icons.auto_awesome),
         const SizedBox(height: 12),
-        // Tự vẽ lại mỗi khi bấm / bỏ tim ở bất kỳ đâu (tab Mẫu, AI, Hồ sơ).
+        // Tự vẽ lại mỗi khi bấm / bỏ tim ở bất kỳ đâu (tab Mẫu, AI, Hồ sơ)
+        // và khi danh sách kiểu tóc vừa tải xong từ server.
         ListenableBuilder(
-          listenable: favoriteStyles,
+          listenable: Listenable.merge([favoriteStyles, hairStylesVersion]),
           builder: (context, _) {
             final saved = _service.savedStyles();
             if (saved.isEmpty) {
