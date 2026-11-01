@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/booking_models.dart';
 
-/// Reads only the documents currently used by the Booking screen.
+/// Đọc catalog cho màn hình Đặt lịch và ghi lịch hẹn vào collection 'bookings'.
 class BookingRepository {
   BookingRepository({FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
@@ -62,6 +62,108 @@ class BookingRepository {
       additionalServices: additionalServices,
       salonSettings: SalonSettings.fromDocument(settingsDocument),
     );
+  }
+
+  /// Lưu một lịch hẹn mới vào collection 'bookings' và trả về mã lịch (#LUNAS...).
+  ///
+  /// - userId luôn là uid của người đang đăng nhập (Security Rules sẽ kiểm tra lại).
+  /// - Tổng tiền và tổng thời lượng được tính lại tại đây từ dịch vụ.
+  Future<String> createBooking({
+    required BookingService mainService,
+    required List<BookingAdditionalService> additionalServices,
+    required SalonSettings salonSettings,
+    required DateTime date,
+    required String time, // dạng "HH:mm"
+    String salonAddress = '',
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw const BookingDataException('Bạn cần đăng nhập để đặt lịch.');
+    }
+    if (!salonSettings.isBookingEnabled) {
+      throw const BookingDataException(
+        'Salon hiện đang tạm ngưng nhận đặt lịch.',
+      );
+    }
+
+    // Ghép ngày + giờ thành một mốc thời gian.
+    final parts = time.split(':');
+    final hour = parts.length == 2 ? int.tryParse(parts[0]) : null;
+    final minute = parts.length == 2 ? int.tryParse(parts[1]) : null;
+    if (hour == null || minute == null) {
+      throw const BookingDataException('Giờ hẹn không hợp lệ.');
+    }
+    final startTime = DateTime(date.year, date.month, date.day, hour, minute);
+    if (!startTime.isAfter(DateTime.now())) {
+      throw const BookingDataException(
+        'Giờ hẹn đã qua. Vui lòng chọn giờ khác.',
+      );
+    }
+
+        final totalPrice = mainService.price +
+        additionalServices.fold<int>(0, (total, s) => total + s.price);
+    final totalDuration = mainService.durationMinutes +
+        additionalServices.fold<int>(
+          0,
+          (total, s) => total + s.durationMinutes,
+        );
+
+    // Mã lịch: #LUNAS + 6 chữ số cuối của đồng hồ (mili giây).
+    final code =
+        '#LUNAS${(DateTime.now().millisecondsSinceEpoch % 1000000).toString().padLeft(6, '0')}';
+
+    final reference = _firestore.collection('bookings').doc();
+    final data = <String, dynamic>{
+      'userId': user.uid,
+      'code': code,
+      'serviceName': mainService.name,
+      'serviceId': mainService.id,
+      'additionalServices': [
+        for (final s in additionalServices)
+          {'id': s.id, 'name': s.name, 'price': s.price},
+      ],
+      'salonName': salonSettings.salonName,
+      'salonAddress': salonAddress,
+      'startTime': Timestamp.fromDate(startTime),
+      'totalDurationMinutes': totalDuration,
+      'totalPrice': totalPrice,
+      'status': 'pending',
+      'stylistName': null,
+      'image': '',
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+
+    developer.log(
+      'Booking create: path=${reference.path}, code=$code',
+      name: 'lunas.booking.firestore',
+    );
+
+    try {
+      // Khi mất mạng Firestore sẽ chờ vô hạn, nên đặt giới hạn 15 giây.
+      await reference.set(data).timeout(const Duration(seconds: 15));
+    } on FirebaseException catch (error) {
+      developer.log(
+        'Booking create error: code=${error.code}',
+        name: 'lunas.booking.firestore',
+      );
+      if (error.code == 'permission-denied') {
+        throw const BookingDataException(
+          'Firestore từ chối quyền lưu lịch hẹn. Hãy kiểm tra security rules.',
+        );
+      }
+      throw const BookingDataException(
+        'Không thể lưu lịch hẹn. Hãy kiểm tra kết nối rồi thử lại.',
+      );
+    } on Exception catch (error) {
+      if (error.toString().contains('TimeoutException')) {
+        throw const BookingDataException(
+          'Lưu lịch hẹn quá lâu. Hãy kiểm tra kết nối mạng rồi thử lại.',
+        );
+      }
+      rethrow;
+    }
+
+    return code;
   }
 
   Future<DocumentSnapshot<Map<String, dynamic>>> _getDocument(

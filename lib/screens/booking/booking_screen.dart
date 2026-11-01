@@ -7,7 +7,7 @@ import '../../models/booking_models.dart';
 import '../../repositories/booking_repository.dart';
 
 /// Đặt lịch làm tóc. Catalog và giờ hoạt động được đọc từ Firestore;
-/// thao tác xác nhận hiện chưa ghi booking.
+/// nút xác nhận ghi lịch hẹn vào collection 'bookings'.
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
 
@@ -32,8 +32,9 @@ class _BookingScreenState extends State<BookingScreen> {
   DateTime _selectedDate = DateUtils.dateOnly(DateTime.now());
   String? _selectedTime;
   Set<String> _selectedExtras = {};
-  // ignore: prefer_final_fields
   bool _isConfirmed = false;
+  bool _isSaving = false;
+  String _bookingCode = '';
 
   @override
   void initState() {
@@ -143,21 +144,44 @@ class _BookingScreenState extends State<BookingScreen> {
     if (picked != null && mounted) setState(() => _selectedDate = picked);
   }
 
-  void _confirmBooking() {
-    final settings = _catalog?.salonSettings;
-    if (settings == null) return;
+  Future<void> _confirmBooking() async {
+    if (_isSaving) return; // đang lưu thì bỏ qua lần bấm thứ hai
+    final catalog = _catalog;
+    if (catalog == null) return;
+    final settings = catalog.salonSettings;
     if (!settings.isBookingEnabled) {
       _showLocalMessage(context, 'Salon hiện đang tạm ngưng nhận đặt lịch.');
       return;
     }
-    if (_selectedTime == null) {
+    final time = _selectedTime;
+    if (time == null) {
       _showLocalMessage(context, 'Không có giờ phù hợp trước giờ đóng cửa.');
       return;
     }
-    _showLocalMessage(
-      context,
-      'Chức năng lưu lịch hẹn chưa được triển khai. Lịch này chưa được đặt.',
-    );
+
+    setState(() => _isSaving = true);
+    try {
+      final code = await _repository.createBooking(
+        mainService: catalog.mainService,
+        additionalServices: _selectedServices,
+        salonSettings: settings,
+        date: _selectedDate,
+        time: time,
+      );
+      if (!mounted) return;
+      setState(() {
+        _bookingCode = code;
+        _isConfirmed = true;
+        _isSaving = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      final message = error is BookingDataException
+          ? error.message
+          : 'Không thể lưu lịch hẹn. Hãy thử lại sau.';
+      _showLocalMessage(context, message);
+    }
   }
 
   @override
@@ -187,6 +211,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 : _isConfirmed
                 ? _SuccessContent(
                     key: const ValueKey('booking-success'),
+                    bookingCode: _bookingCode,
                     mainService: _catalog!.mainService,
                     selectedServices: _selectedServices,
                     selectedDate: _selectedDate,
@@ -206,6 +231,7 @@ class _BookingScreenState extends State<BookingScreen> {
                     selectedExtras: _selectedExtras,
                     totalDuration: _totalDuration,
                     totalPrice: _totalPrice,
+                    isSaving: _isSaving,
                     onDateChanged: (date) {
                       setState(() {
                         _selectedDate = date;
@@ -370,6 +396,7 @@ class _BookingForm extends StatelessWidget {
     required this.selectedExtras,
     required this.totalDuration,
     required this.totalPrice,
+    required this.isSaving,
     required this.onDateChanged,
     required this.onChooseDate,
     required this.onTimeChanged,
@@ -389,6 +416,7 @@ class _BookingForm extends StatelessWidget {
   final Set<String> selectedExtras;
   final int totalDuration;
   final int totalPrice;
+  final bool isSaving;
   final ValueChanged<DateTime> onDateChanged;
   final VoidCallback onChooseDate;
   final ValueChanged<String> onTimeChanged;
@@ -530,7 +558,8 @@ class _BookingForm extends StatelessWidget {
               onPressed:
                   salonSettings.isBookingEnabled &&
                       availableTimes.isNotEmpty &&
-                      selectedTime != null
+                      selectedTime != null &&
+                      !isSaving
                   ? onConfirm
                   : null,
               style: ElevatedButton.styleFrom(
@@ -543,7 +572,16 @@ class _BookingForm extends StatelessWidget {
                   borderRadius: BorderRadius.circular(18),
                 ),
               ),
-              child: const Text('Xác nhận đặt lịch'),
+              child: isSaving
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Xác nhận đặt lịch'),
             ),
           ),
           const SizedBox(height: 10),
@@ -1201,6 +1239,7 @@ class _SummaryLabel extends StatelessWidget {
 class _SuccessContent extends StatelessWidget {
   const _SuccessContent({
     super.key,
+    required this.bookingCode,
     required this.mainService,
     required this.selectedServices,
     required this.selectedDate,
@@ -1210,6 +1249,7 @@ class _SuccessContent extends StatelessWidget {
     required this.salonSettings,
   });
 
+  final String bookingCode;
   final BookingService mainService;
   final List<BookingAdditionalService> selectedServices;
   final DateTime selectedDate;
@@ -1275,13 +1315,22 @@ class _SuccessContent extends StatelessWidget {
               color: const Color(0xFFF0EAE9),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Text.rich(
+            child: Text.rich(
               TextSpan(
-                style: TextStyle(
+                style: const TextStyle(
                   color: _BookingScreenState._muted,
                   fontSize: 12,
                 ),
-                children: [TextSpan(text: 'Mã lịch hẹn sẽ có sau khi lưu')],
+                children: [
+                  const TextSpan(text: 'Mã lịch hẹn: '),
+                  TextSpan(
+                    text: bookingCode,
+                    style: const TextStyle(
+                      color: _BookingScreenState._ink,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
