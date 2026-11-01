@@ -137,8 +137,10 @@ class _ArButton extends StatelessWidget {
             Transform.translate(
               offset: const Offset(0, -14),
               child: Container(
-                width: 58,
-                height: 58,
+                // 52 + chữ "Thử với AR" (~16) = 68, vừa trong thanh menu cao 72.
+                // (Trước là 58 -> 74, tràn 2 pixel.)
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
                   color: AppColors.pink,
                   shape: BoxShape.circle,
@@ -151,7 +153,7 @@ class _ArButton extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Icon(Icons.center_focus_strong, color: Colors.white, size: 28),
+                child: const Icon(Icons.center_focus_strong, color: Colors.white, size: 26),
               ),
             ),
             Transform.translate(
