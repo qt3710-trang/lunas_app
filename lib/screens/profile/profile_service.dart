@@ -225,9 +225,14 @@ class ProfileService {
   Future<void> ensureHairStylesLoaded() async {
     final known = hairStyles.map((s) => s.id).toSet();
     if (favoriteStyles.ids.any((id) => !known.contains(id))) {
-      await loadHairStyles();
+      // Đang tải rồi thì chờ lượt đó, không gọi API thêm lần nữa.
+      final loading = _hairStylesLoading ??= loadHairStyles();
+      await loading;
+      _hairStylesLoading = null;
     }
   }
+
+  Future<bool>? _hairStylesLoading;
 
   /// Mẫu đã lưu, mới lưu nằm trước. Đọc ngay (không cần chờ).
   List<SavedStyle> savedStyles() {
