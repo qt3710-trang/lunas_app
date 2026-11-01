@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/data/booking_selection.dart';
 import '../../app/data/favorite_styles.dart';
 import '../../app/data/collection_styles.dart';
 import '../../app/data/hair_style.dart';
@@ -55,6 +56,12 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+  }
+
+  /// Ghi mẫu + màu đang xem rồi chuyển sang tab Đặt lịch.
+  void _book(HairStyle style) {
+    bookingSelection.choose(style, _color);
+    context.go('/booking');
   }
 
   @override
@@ -307,40 +314,67 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
         color: AppColors.cream,
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () => context.go('/ar'),
-              icon: const Icon(Icons.center_focus_strong, size: 18),
-              label: const Text('Thử với AR'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.teal,
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _book(style),
+              icon: const Icon(Icons.calendar_month, size: 18),
+              label: const Text('Đặt lịch với mẫu này'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.pink,
+                foregroundColor: Colors.white,
                 minimumSize: const Size.fromHeight(48),
-                side: const BorderSide(color: AppColors.teal),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () => _saveToCollection(style),
-              icon: const Icon(Icons.collections_bookmark_outlined, size: 18),
-              label: const Text(
-                'Thêm vào bộ sưu tập của tôi',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => context.go('/ar'),
+                  icon: const Icon(Icons.center_focus_strong, size: 18),
+                  label: const Text('Thử với AR'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.teal,
+                    minimumSize: const Size.fromHeight(44),
+                    side: const BorderSide(color: AppColors.teal),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _saveToCollection(style),
+                  icon: const Icon(
+                    Icons.collections_bookmark_outlined,
+                    size: 18,
+                  ),
+                  label: const Text(
+                    'Lưu bộ sưu tập',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.teal,
+                    minimumSize: const Size.fromHeight(44),
+                    side: const BorderSide(color: AppColors.teal),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

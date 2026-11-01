@@ -43,5 +43,10 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Cho phép url_launcher mở link https (Google Calendar, Google Maps). -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
     </queries>
 </manifest>
