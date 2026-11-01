@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/data/favorite_styles.dart';
@@ -13,8 +14,8 @@ import 'profile_models.dart';
 ///
 /// ĐÃ THẬT:
 ///  - id, tên, SĐT: lấy từ Firebase Auth.
-///  - Dáng mặt, tông da, phong cách...: người mới thì TRỐNG, tự chọn.
-///    TẠM lưu trên máy, riêng từng tài khoản (sau này: API /me).
+///  - Dáng mặt, tông da, phong cách...: lưu trên Firestore qua API
+///    (GET /me, PUT /me), kèm một bản trên máy để dùng khi mất mạng.
 ///  - Mẫu đã lưu: chính là các mẫu bấm tim ở tab Mẫu (favoriteStyles).
 ///  - AI gợi ý: chọn từ bộ sưu tập kiểu tóc thật, theo vibe (chưa phải AI thật).
 ///
@@ -77,7 +78,7 @@ class ProfileService {
     ];
   }
 
-  // ---------- Hồ sơ ----------
+  // ---------- Hồ sơ (lưu trên Firestore qua API) ----------
 
   /// Lấy hồ sơ của người ĐANG ĐĂNG NHẬP.
   Future<UserProfile> getProfile() async {
@@ -87,8 +88,23 @@ class ProfileService {
     // Đã tải rồi và vẫn là người đó -> dùng luôn.
     if (_profile != null && _profile!.id == user.id) return _profile!;
 
-    // Đọc hồ sơ đã lưu trên máy của tài khoản này (người mới thì không có).
-    final saved = await _loadLocal(user.id);
+    // 1. Hỏi API (Firestore). 2. Đọc bản trên máy.
+    final remote = await _fetchRemote();
+    final local = await _loadLocal(user.id);
+
+    UserProfile? saved;
+    if (remote != null && _hasProfileData(remote)) {
+      // Firestore đã có hồ sơ -> dùng bản trên Firestore.
+      saved = UserProfile.fromMap(user.id, remote);
+    } else {
+      // Firestore chưa có (người mới, hoặc trước đây chỉ lưu trên máy),
+      // hoặc mất mạng -> dùng bản trên máy.
+      saved = local;
+      // Có mạng mà Firestore còn trống, trên máy lại có dữ liệu cũ -> chuyển lên Firestore.
+      if (remote != null && local != null) {
+        await _pushRemote(local);
+      }
+    }
 
     // Tên: ưu tiên tên đã lưu (đổi tên trong Hồ sơ), không có thì lấy tên lúc đăng ký.
     final name = (saved != null && saved.name.isNotEmpty)
@@ -106,25 +122,78 @@ class ProfileService {
       skinTone: saved?.skinTone ?? '',
       weeklyNotify: saved?.weeklyNotify ?? true,
     );
+
+    await _saveLocal(_profile!); // giữ một bản trên máy để dùng khi mất mạng
     return _profile!;
   }
 
-  /// Lưu hồ sơ sau khi sửa: lưu trên máy, đổi tên thì lưu luôn lên Firebase.
+  /// Lưu hồ sơ sau khi sửa: lên Firestore (qua API) + một bản trên máy.
+  /// Đổi tên thì lưu luôn lên Firebase Auth.
   Future<UserProfile> updateProfile(UserProfile profile) async {
     final nameChanged = _profile != null && profile.name != _profile!.name;
     _profile = profile;
 
     await _saveLocal(profile);
+    await _pushRemote(profile); // mất mạng thì bỏ qua, lần sau mở app sẽ đồng bộ lại
 
     if (nameChanged) {
       try {
         await FirebaseAuth.instance.currentUser?.updateDisplayName(profile.name);
       } on FirebaseAuthException {
-        // Lỗi mạng... -> bỏ qua, tên vẫn đã lưu trên máy.
+        // Lỗi mạng... -> bỏ qua, tên vẫn đã lưu trên máy và Firestore.
       }
     }
     return _profile!;
   }
+
+  // ---------- Gọi API /me ----------
+
+  /// Header gửi kèm: "vé" đăng nhập (ID token) của Firebase.
+  /// Chưa đăng nhập -> null.
+  Future<Map<String, String>?> _authHeaders() async {
+    final token = await FirebaseAuth.instance.currentUser?.getIdToken();
+    if (token == null) return null;
+    return {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+  }
+
+  /// GET /me -> hồ sơ trên Firestore. Lỗi mạng / API lỗi -> null.
+  Future<Map<String, dynamic>?> _fetchRemote() async {
+    try {
+      final headers = await _authHeaders();
+      if (headers == null) return null;
+      final res = await http
+          .get(Uri.parse('$apiBaseUrl/me'), headers: headers)
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode != 200) return null;
+      return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// PUT /me -> lưu hồ sơ lên Firestore. Trả về true nếu lưu được.
+  Future<bool> _pushRemote(UserProfile profile) async {
+    try {
+      final headers = await _authHeaders();
+      if (headers == null) return false;
+      final body = profile.toMap()..remove('phone'); // SĐT không lưu ở đây
+      final res = await http
+          .put(Uri.parse('$apiBaseUrl/me'), headers: headers, body: jsonEncode(body))
+          .timeout(const Duration(seconds: 15));
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Firestore trả về có dữ liệu hồ sơ không (ngoài trường id)?
+  bool _hasProfileData(Map<String, dynamic> remote) =>
+      remote.keys.any((k) => k != 'id');
+
+  // ---------- Bản lưu trên máy ----------
 
   /// Đọc hồ sơ đã lưu trên máy. Không có hoặc lỗi -> null.
   Future<UserProfile?> _loadLocal(String uid) async {
@@ -145,7 +214,7 @@ class ProfileService {
     await prefs.setString(_keyFor(profile.id), jsonEncode(profile.toMap()));
   }
 
-  // ---------- Mẫu đã lưu (ĐÃ THẬT: chính là các mẫu bấm tim) ----------
+  // ---------- Mẫu đã lưu (chính là các mẫu bấm tim) ----------
 
   /// Đổi một kiểu tóc trong bộ sưu tập thành SavedStyle để hiện ở Hồ sơ.
   SavedStyle _toSaved(HairStyle s) =>
@@ -205,7 +274,7 @@ class ProfileService {
 
   // ---------- Đăng xuất ----------
 
-  /// Đăng xuất Firebase và quên hồ sơ trong RAM (hồ sơ trên máy vẫn giữ).
+  /// Đăng xuất Firebase và quên hồ sơ trong RAM.
   Future<void> logout() async {
     await AuthService.instance.logout();
     _profile = null;
@@ -220,8 +289,7 @@ class ProfileService {
     'Thanh lịch': {HairType.layer, HairType.hushCut, HairType.straight},
   };
 
-  /// Chọn 3 kiểu tóc trong bộ sưu tập hợp với vibe.
-  /// Sau này: thay bằng AI thật.
+  /// Chọn 3 kiểu tóc trong bộ sưu tập hợp với vibe. Sau này: thay bằng AI thật.
   Future<List<AiSuggestion>> getAiSuggestions({
     required String occasion,
     required String skinTone,
