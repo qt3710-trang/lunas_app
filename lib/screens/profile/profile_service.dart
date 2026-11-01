@@ -1,41 +1,40 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../app/data/favorite_styles.dart';
+import '../../app/data/hair_style.dart';
+import '../../app/data/hair_style_api.dart';
 import '../../services/auth_service.dart';
 import 'profile_models.dart';
 
 /// Nơi DUY NHẤT trang Hồ sơ lấy và lưu dữ liệu.
 ///
-/// ĐÃ THẬT (Firebase Auth): id, tên, số điện thoại, đăng xuất.
-/// CÒN GIẢ (chờ API Node.js + Firestore): dáng mặt, tông da, phong cách,
-/// mẫu đã lưu, lịch hẹn, AI gợi ý. Mọi tài khoản tạm thấy chung dữ liệu giả này.
+/// ĐÃ THẬT:
+///  - id, tên, SĐT: lấy từ Firebase Auth.
+///  - Dáng mặt, tông da, phong cách...: người mới thì TRỐNG, tự chọn.
+///    TẠM lưu trên máy, riêng từng tài khoản (sau này: API /me).
+///  - Mẫu đã lưu: chính là các mẫu bấm tim ở tab Mẫu (favoriteStyles).
+///  - AI gợi ý: chọn từ bộ sưu tập kiểu tóc thật, theo vibe (chưa phải AI thật).
+///
+/// CÒN GIẢ: lịch hẹn.
 class ProfileService {
   ProfileService._();
   static final instance = ProfileService._();
 
   static const _img = 'assets/images/hairstyles';
 
-  // ---------- Dữ liệu giả ----------
+  /// Hồ sơ dự phòng khi chưa đăng nhập (không nên xảy ra vì router đã chặn).
+  static const _guestProfile = UserProfile(id: 'guest', name: 'Khách', phone: '');
 
-  /// Sở thích mẫu, tạm gán cho mọi tài khoản cho tới khi có Firestore.
-  static const _demoProfile = UserProfile(
-    id: 'demo_user',
-    name: 'Linh',
-    phone: '0901234567',
-    favoriteHair: 'Tóc layer bồng bềnh',
-    styleTags: ['Ngọt ngào', 'Cổ điển'],
-    faceShape: 'Mặt trái xoan',
-    skinTone: 'Da sáng',
-    weeklyNotify: true,
-  );
+  /// Hồ sơ của người đang đăng nhập (giữ trong RAM cho nhanh).
+  UserProfile? _profile;
 
-  /// Hồ sơ đang hiển thị (đã gộp thông tin thật từ Firebase).
-  UserProfile _profile = _demoProfile;
+  /// Tên "ô nhớ" trên máy của từng tài khoản: profile_<uid>
+  String _keyFor(String uid) => 'profile_$uid';
 
-  final List<SavedStyle> _saved = [
-    const SavedStyle(id: 'layer_bong_benh', name: 'Layer bồng bềnh', image: '$_img/layer_bong_benh.jpg'),
-    const SavedStyle(id: 'uon_song_tra_sua', name: 'Nâu trà sữa uốn sóng', image: '$_img/uon_song_tra_sua.jpg'),
-    const SavedStyle(id: 'bob_han_quoc', name: 'Bob Hàn Quốc', image: '$_img/bob_han_quoc.jpg'),
-  ];
+  // ---------- Lịch hẹn (còn giả) ----------
 
   /// Lịch hẹn giả, tính ngày theo hôm nay để lúc nào cũng có lịch "sắp tới".
   late final List<Appointment> _appointments = _makeDemoAppointments();
@@ -81,62 +80,113 @@ class ProfileService {
   // ---------- Hồ sơ ----------
 
   /// Lấy hồ sơ của người ĐANG ĐĂNG NHẬP.
-  /// id, tên, SĐT lấy thật từ Firebase; các sở thích còn lại tạm lấy từ dữ liệu giả.
   Future<UserProfile> getProfile() async {
     final user = AuthService.instance.currentUser;
+    if (user == null) return _guestProfile;
 
-    // Chưa đăng nhập (không nên xảy ra) -> dùng dữ liệu giả để màn hình không lỗi.
-    if (user == null) return _profile;
+    // Đã tải rồi và vẫn là người đó -> dùng luôn.
+    if (_profile != null && _profile!.id == user.id) return _profile!;
 
-    // Người đăng nhập khác với hồ sơ đang giữ -> tạo hồ sơ mới cho người này.
-    if (_profile.id != user.id) {
-      _profile = UserProfile(
-        id: user.id,
-        name: user.name.isEmpty ? 'Bạn' : user.name,
-        phone: user.phone,
-        favoriteHair: _demoProfile.favoriteHair,
-        styleTags: _demoProfile.styleTags,
-        faceShape: _demoProfile.faceShape,
-        skinTone: _demoProfile.skinTone,
-        weeklyNotify: _demoProfile.weeklyNotify,
-      );
-    }
-    return _profile;
+    // Đọc hồ sơ đã lưu trên máy của tài khoản này (người mới thì không có).
+    final saved = await _loadLocal(user.id);
+
+    // Tên: ưu tiên tên đã lưu (đổi tên trong Hồ sơ), không có thì lấy tên lúc đăng ký.
+    final name = (saved != null && saved.name.isNotEmpty)
+        ? saved.name
+        : (user.name.isEmpty ? 'Bạn' : user.name);
+
+    _profile = UserProfile(
+      id: user.id,
+      name: name,
+      phone: user.phone, // SĐT luôn lấy từ tài khoản Firebase
+      // Người mới: saved == null -> các mục dưới đều TRỐNG.
+      favoriteHair: saved?.favoriteHair ?? '',
+      styleTags: saved?.styleTags ?? const [],
+      faceShape: saved?.faceShape ?? '',
+      skinTone: saved?.skinTone ?? '',
+      weeklyNotify: saved?.weeklyNotify ?? true,
+    );
+    return _profile!;
   }
 
-  /// Lưu hồ sơ sau khi sửa.
-  /// Nếu đổi tên -> lưu tên lên Firebase Auth (mở lại app vẫn còn).
-  /// Các sở thích khác: tạm lưu trong máy, tắt app sẽ mất (chờ Firestore).
+  /// Lưu hồ sơ sau khi sửa: lưu trên máy, đổi tên thì lưu luôn lên Firebase.
   Future<UserProfile> updateProfile(UserProfile profile) async {
-    final nameChanged = profile.name != _profile.name;
+    final nameChanged = _profile != null && profile.name != _profile!.name;
     _profile = profile;
+
+    await _saveLocal(profile);
 
     if (nameChanged) {
       try {
         await FirebaseAuth.instance.currentUser?.updateDisplayName(profile.name);
       } on FirebaseAuthException {
-        // Lỗi mạng... -> bỏ qua, tên vẫn đổi trên màn hình lần này.
+        // Lỗi mạng... -> bỏ qua, tên vẫn đã lưu trên máy.
       }
     }
-    return _profile;
+    return _profile!;
   }
 
-  // ---------- Mẫu đã lưu (còn giả) ----------
+  /// Đọc hồ sơ đã lưu trên máy. Không có hoặc lỗi -> null.
+  Future<UserProfile?> _loadLocal(String uid) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final text = prefs.getString(_keyFor(uid));
+      if (text == null) return null;
+      final map = jsonDecode(text) as Map<String, dynamic>;
+      return UserProfile.fromMap(uid, map);
+    } catch (_) {
+      return null; // dữ liệu hỏng -> coi như chưa có
+    }
+  }
+
+  /// Ghi hồ sơ xuống máy, dạng chữ JSON.
+  Future<void> _saveLocal(UserProfile profile) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyFor(profile.id), jsonEncode(profile.toMap()));
+  }
+
+  // ---------- Mẫu đã lưu (ĐÃ THẬT: chính là các mẫu bấm tim) ----------
+
+  /// Đổi một kiểu tóc trong bộ sưu tập thành SavedStyle để hiện ở Hồ sơ.
+  SavedStyle _toSaved(HairStyle s) =>
+      SavedStyle(id: s.id, name: s.name, image: s.thumbUrl ?? '');
+
+  /// Nếu có mẫu đã lưu mà chưa có trong danh sách kiểu tóc (ví dụ chưa mở tab Mẫu
+  /// nên app vẫn đang dùng dữ liệu dự phòng) -> tải danh sách từ API.
+  Future<void> ensureHairStylesLoaded() async {
+    final known = hairStyles.map((s) => s.id).toSet();
+    if (favoriteStyles.ids.any((id) => !known.contains(id))) {
+      await loadHairStyles();
+    }
+  }
+
+  /// Mẫu đã lưu, mới lưu nằm trước. Đọc ngay (không cần chờ).
+  List<SavedStyle> savedStyles() {
+    final byId = {for (final s in hairStyles) s.id: s};
+    return [
+      for (final id in favoriteStyles.ids.reversed)
+        if (byId[id] != null) _toSaved(byId[id]!),
+    ];
+  }
 
   Future<List<SavedStyle>> getSavedStyles() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return List.of(_saved);
+    await ensureHairStylesLoaded();
+    return savedStyles();
   }
 
+  /// Bỏ lưu (tab Mẫu cũng bỏ tim theo).
   Future<void> removeSavedStyle(String styleId) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _saved.removeWhere((s) => s.id == styleId);
+    favoriteStyles.remove(styleId);
+  }
+
+  /// Lưu một mẫu (tab Mẫu cũng hiện tim theo).
+  Future<void> addSavedStyle(SavedStyle style) async {
+    favoriteStyles.add(style.id);
   }
 
   // ---------- Lịch hẹn (còn giả) ----------
 
   /// Lấy lịch hẹn của người dùng, mới nhất lên trước.
-  /// Sau này: đọc 'bookings' có userId == uid (qua API của nhóm).
   Future<List<Appointment>> getAppointments() async {
     await Future.delayed(const Duration(milliseconds: 300));
     final list = List.of(_appointments);
@@ -153,37 +203,25 @@ class ProfileService {
     }
   }
 
-  // ---------- Đăng xuất (ĐÃ THẬT) ----------
+  // ---------- Đăng xuất ----------
 
-  /// Đăng xuất Firebase, và quên hồ sơ cũ để người sau không thấy.
+  /// Đăng xuất Firebase và quên hồ sơ trong RAM (hồ sơ trên máy vẫn giữ).
   Future<void> logout() async {
     await AuthService.instance.logout();
-    _profile = _demoProfile;
+    _profile = null;
   }
 
-  // ---------- Lưu thêm mẫu (còn giả) ----------
+  // ---------- AI gợi ý (chọn từ bộ sưu tập thật, chưa phải AI thật) ----------
 
-  /// Lưu một mẫu vào "Mẫu đã lưu" (nếu chưa có).
-  Future<void> addSavedStyle(SavedStyle style) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    final exists = _saved.any((s) => s.id == style.id);
-    if (!exists) _saved.insert(0, style);   // thêm lên đầu danh sách
-  }
+  /// Vibe -> các kiểu tóc hợp.
+  static const Map<String, Set<HairType>> _vibeTypes = {
+    'Cá tính': {HairType.pixie, HairType.wolfCut},
+    'Dễ thương': {HairType.bob, HairType.curly},
+    'Thanh lịch': {HairType.layer, HairType.hushCut, HairType.straight},
+  };
 
-  // ---------- AI gợi ý (còn giả) ----------
-
-  /// Kho kiểu tóc để "AI" chọn ra.
-  static const _catalog = [
-    SavedStyle(id: 'butterfly_layer', name: 'Butterfly Layer', image: '$_img/butterfly_layer.jpg'),
-    SavedStyle(id: 'hush_cut', name: 'Hush Cut', image: '$_img/hush_cut.jpg'),
-    SavedStyle(id: 'long_layer', name: 'Long Layer', image: '$_img/long_layer.jpg'),
-    SavedStyle(id: 'soft_wolf_cut', name: 'Soft Wolf Cut', image: '$_img/soft_wolf_cut.jpg'),
-    SavedStyle(id: 'pixie_cut', name: 'Pixie Cut', image: '$_img/pixie_cut.jpg'),
-    SavedStyle(id: 'bob_han_quoc', name: 'Bob Hàn Quốc', image: '$_img/bob_han_quoc.jpg'),
-  ];
-
-  /// Bây giờ: chọn GIẢ 3 kiểu theo lựa chọn của khách.
-  /// Sau này: gọi AI thật.
+  /// Chọn 3 kiểu tóc trong bộ sưu tập hợp với vibe.
+  /// Sau này: thay bằng AI thật.
   Future<List<AiSuggestion>> getAiSuggestions({
     required String occasion,
     required String skinTone,
@@ -192,13 +230,19 @@ class ProfileService {
   }) async {
     await Future.delayed(const Duration(milliseconds: 1200)); // giả vờ AI đang nghĩ
 
+    final wanted = _vibeTypes[vibe] ?? const <HairType>{};
+    var pool = hairStyles.where((s) => s.types.any(wanted.contains)).toList();
+    if (pool.length < 3) pool = List.of(hairStyles); // ít quá thì lấy cả bộ sưu tập
+    if (pool.isEmpty) return [];
+
     // Chọn vị trí bắt đầu khác nhau tùy lựa chọn, để mỗi lần chọn khác ra kết quả khác
-    final start = (occasion.length + vibe.length + skinTone.length) % _catalog.length;
+    final start = (occasion.length + skinTone.length + undertone.length) % pool.length;
+    final count = pool.length < 3 ? pool.length : 3;
 
     return [
-      for (var i = 0; i < 3; i++)
+      for (var i = 0; i < count; i++)
         AiSuggestion(
-          style: _catalog[(start + i) % _catalog.length],
+          style: _toSaved(pool[(start + i) % pool.length]),
           reason: 'Hợp vibe $vibe khi $occasion, tôn $skinTone ($undertone).',
         ),
     ];

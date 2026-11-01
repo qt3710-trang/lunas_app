@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/data/favorite_styles.dart';
 import '../../app/theme.dart';
 import 'ai_suggest_screen.dart';   // BÀI 7B
 import 'profile_models.dart';
@@ -18,7 +19,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _service = ProfileService.instance;
 
   UserProfile? _profile;
-  List<SavedStyle> _saved = [];
   List<Appointment> _appointments = [];
   bool _loading = true;
   int _tab = 0;                           // 0 = Mẫu đã lưu, 1 = Lịch hẹn
@@ -31,12 +31,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _load() async {
     final profile = await _service.getProfile();
-    final saved = await _service.getSavedStyles();
+    await _service.ensureHairStylesLoaded(); // để tra được tên + ảnh mẫu đã lưu
     final appointments = await _service.getAppointments();
     if (!mounted) return;
     setState(() {
       _profile = profile;
-      _saved = saved;
       _appointments = appointments;
       _loading = false;
     });
@@ -44,6 +43,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _toast(String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  // ================= CHỮ TÓM TẮT (xử lý khi hồ sơ còn trống) =================
+
+  /// Dòng dưới tên. Ví dụ: "Tóc layer · thích Ngọt ngào, Cổ điển".
+  /// Người mới chưa chọn gì -> "Chưa chọn phong cách".
+  String _styleSummary(UserProfile p) {
+    final parts = <String>[];
+    if (p.favoriteHair.isNotEmpty) parts.add(p.favoriteHair);
+    if (p.styleTags.isNotEmpty) parts.add('thích ${p.styleTags.join(', ')}');
+    return parts.isEmpty ? 'Chưa chọn phong cách' : parts.join(' · ');
+  }
+
+  /// Ví dụ: "Mặt tròn · Da ngà". Chưa chọn -> "Chưa chọn".
+  String _faceSkinSummary(UserProfile p) {
+    final parts = [p.faceShape, p.skinTone].where((s) => s.isNotEmpty).toList();
+    return parts.isEmpty ? 'Chưa chọn' : parts.join(' · ');
+  }
+
+  /// Ví dụ: "Ngọt ngào, Cá tính". Chưa chọn -> "Chưa chọn".
+  String _tagsSummary(UserProfile p) {
+    return p.styleTags.isEmpty ? 'Chưa chọn' : p.styleTags.join(', ');
   }
 
   // ================= HÀNH ĐỘNG =================
@@ -56,18 +77,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _toast(message);
   }
 
-  /// BÀI 7B: mở màn AI gợi ý. Quay về thì tải lại "Mẫu đã lưu".
+  /// BÀI 7B: mở màn AI gợi ý. Mẫu lưu từ AI tự hiện ở "Mẫu đã lưu".
   Future<void> _openAi() async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => AiSuggestScreen(profile: _profile!)),
     );
-    final saved = await _service.getSavedStyles();
-    if (!mounted) return;
-    setState(() => _saved = saved);
   }
 
   Future<void> _unsave(SavedStyle style) async {
-    setState(() => _saved.removeWhere((s) => s.id == style.id));
     await _service.removeSavedStyle(style.id);
     _toast('Đã bỏ lưu "${style.name}"');
   }
@@ -179,25 +196,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  /// Ảnh kiểu tóc. Chưa có file ảnh -> hiện khung hồng có biểu tượng.
+  /// Ảnh kiểu tóc: link mạng (https://...) hoặc ảnh trong app (assets/...).
+  /// Không có ảnh / lỗi tải -> khung hồng có biểu tượng.
   Widget _buildPhoto(String path, {double? width, double height = 130}) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: Image.asset(
-        path,
-        width: width ?? double.infinity,
-        height: height,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => Container(
-          width: width ?? double.infinity,
+    final w = width ?? double.infinity;
+
+    Widget placeholder() => Container(
+          width: w,
           height: height,
           color: const Color(0xFFF6E3E8),
           child: const Center(
             child: Icon(Icons.face_retouching_natural, color: AppColors.teal, size: 28),
           ),
-        ),
-      ),
-    );
+        );
+
+    Widget image;
+    if (path.isEmpty) {
+      image = placeholder();
+    } else if (path.startsWith('http')) {
+      image = Image.network(
+        path,
+        width: w,
+        height: height,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => placeholder(),
+      );
+    } else {
+      image = Image.asset(
+        path,
+        width: w,
+        height: height,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => placeholder(),
+      );
+    }
+
+    return ClipRRect(borderRadius: BorderRadius.circular(14), child: image);
   }
 
   Widget _buildHeader(UserProfile profile) {
@@ -220,7 +254,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(profile.name, style: AppTheme.titleFont(size: 24)),
                 const SizedBox(height: 4),
                 Text(
-                  '${profile.favoriteHair} · thích ${profile.styleTags.join(', ')}',
+                  _styleSummary(profile),
                   style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
                 ),
               ],
@@ -287,21 +321,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         _sectionTitle('Mẫu tóc đã lưu', Icons.auto_awesome),
         const SizedBox(height: 12),
-        if (_saved.isEmpty)
-          const Text(
-            'Bạn chưa lưu mẫu nào. Bấm hình trái tim ở trang Mẫu để lưu nhé.',
-            style: TextStyle(color: AppColors.textGrey),
-          )
-        else
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final style in _saved.take(3)) ...[
-                Expanded(child: _buildStyleTile(style)),
-                const SizedBox(width: 10),
+        // Tự vẽ lại mỗi khi bấm / bỏ tim ở bất kỳ đâu (tab Mẫu, AI, Hồ sơ).
+        ListenableBuilder(
+          listenable: favoriteStyles,
+          builder: (context, _) {
+            final saved = _service.savedStyles();
+            if (saved.isEmpty) {
+              return const Text(
+                'Bạn chưa lưu mẫu nào. Bấm hình trái tim ở trang Mẫu để lưu nhé.',
+                style: TextStyle(color: AppColors.textGrey),
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final style in saved.take(3)) ...[
+                  Expanded(child: _buildStyleTile(style)),
+                  const SizedBox(width: 10),
+                ],
               ],
-            ],
-          ),
+            );
+          },
+        ),
         const SizedBox(height: 20),
         _buildMenu(profile),
         const SizedBox(height: 20),   // BÀI 7B
@@ -394,7 +435,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildMenuRow(
             icon: Icons.face_outlined,
             title: 'Dáng mặt và tông da',
-            subtitle: '${profile.faceShape} · ${profile.skinTone}',
+            subtitle: _faceSkinSummary(profile),
             onTap: () async => _saveProfile(
               await showFaceSkinSheet(context, profile),
               'Đã lưu dáng mặt và màu da',
@@ -404,7 +445,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildMenuRow(
             icon: Icons.star_border,
             title: 'Phong cách yêu thích',
-            subtitle: profile.styleTags.join(', '),
+            subtitle: _tagsSummary(profile),
             onTap: () async => _saveProfile(
               await showStyleSheet(context, profile),
               'Đã lưu phong cách yêu thích',
