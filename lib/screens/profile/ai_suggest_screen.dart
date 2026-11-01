@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../app/data/favorite_styles.dart';
 import '../../app/theme.dart';
 import 'profile_models.dart';
 import 'profile_service.dart';
@@ -304,9 +305,38 @@ class _AiSuggestScreenState extends State<AiSuggestScreen> {
     );
   }
 
+  /// Ảnh kết quả: link mạng hoặc ảnh trong app. Lỗi / trống -> khung hồng.
+  Widget _resultPhoto(String path) {
+    Widget placeholder() => Container(
+          width: 76,
+          height: 90,
+          color: const Color(0xFFF6E3E8),
+          child: const Icon(Icons.face_retouching_natural, color: AppColors.teal),
+        );
+
+    if (path.isEmpty) return placeholder();
+    if (path.startsWith('http')) {
+      return Image.network(
+        path,
+        width: 76,
+        height: 90,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => placeholder(),
+      );
+    }
+    return Image.asset(
+      path,
+      width: 76,
+      height: 90,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => placeholder(),
+    );
+  }
+
   /// Thẻ một kết quả gợi ý
   Widget _resultCard(AiSuggestion r) {
-    final saved = _savedIds.contains(r.style.id);
+    // Đã lưu = vừa bấm tim ở đây HOẶC đã bấm tim từ trước (tab Mẫu).
+    final saved = _savedIds.contains(r.style.id) || favoriteStyles.contains(r.style.id);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -318,18 +348,7 @@ class _AiSuggestScreenState extends State<AiSuggestScreen> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
-            child: Image.asset(
-              r.style.image,
-              width: 76,
-              height: 90,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: 76,
-                height: 90,
-                color: const Color(0xFFF6E3E8),
-                child: const Icon(Icons.face_retouching_natural, color: AppColors.teal),
-              ),
-            ),
+            child: _resultPhoto(r.style.image),
           ),
           const SizedBox(width: 12),
           Expanded(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
+import '../../services/auth_service.dart';
 import 'profile_models.dart';
 
 // Các lựa chọn cố định
@@ -11,7 +12,7 @@ const styleTagOptions = [
 ];
 
 // =====================================================================
-// 1. Hộp thoại SỬA TÊN (mở từ nút bánh răng)
+// 1. Hộp thoại SỬA TÊN (mở từ bảng Cài đặt)
 // Trả về hồ sơ đã sửa, hoặc null nếu người dùng bấm Hủy.
 // =====================================================================
 Future<UserProfile?> showEditNameDialog(BuildContext context, UserProfile profile) {
@@ -197,6 +198,167 @@ Future<UserProfile?> showStyleSheet(BuildContext context, UserProfile profile) {
           ),
         ),
       ),
+    ),
+  );
+}
+
+// =====================================================================
+// 4. Bảng CÀI ĐẶT TÀI KHOẢN (mở từ nút bánh răng)
+// Trả về lựa chọn người dùng bấm, hoặc null nếu đóng bảng.
+// =====================================================================
+enum SettingsChoice { editName, changePassword }
+
+Future<SettingsChoice?> showSettingsSheet(BuildContext context, UserProfile profile) {
+  return showModalBottomSheet<SettingsChoice>(
+    context: context,
+    showDragHandle: true,
+    backgroundColor: AppColors.cream,
+    builder: (sheetContext) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Cài đặt tài khoản', style: AppTheme.titleFont(size: 22)),
+            const SizedBox(height: 12),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.person_outline, color: AppColors.pink),
+              title: const Text('Tên hiển thị'),
+              subtitle: Text(profile.name),
+              trailing: const Icon(Icons.edit_outlined, size: 18),
+              onTap: () => Navigator.pop(sheetContext, SettingsChoice.editName),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.phone_outlined, color: AppColors.pink),
+              title: const Text('Số điện thoại'),
+              subtitle: Text(profile.phone),
+              // SĐT là tài khoản đăng nhập nên không cho đổi (không có onTap).
+              trailing: const Text(
+                'Không đổi được',
+                style: TextStyle(fontSize: 11, color: AppColors.textGrey),
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.lock_outline, color: AppColors.pink),
+              title: const Text('Đổi mật khẩu'),
+              trailing: const Icon(Icons.arrow_forward, size: 18),
+              onTap: () => Navigator.pop(sheetContext, SettingsChoice.changePassword),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+// =====================================================================
+// 5. Hộp ĐỔI MẬT KHẨU
+// Tự gọi AuthService. Trả về true nếu đổi thành công.
+// =====================================================================
+Future<bool?> showChangePasswordDialog(BuildContext context) {
+  final currentController = TextEditingController();
+  final newController = TextEditingController();
+  final confirmController = TextEditingController();
+  String? error;          // câu báo lỗi hiện trong hộp (null = không có lỗi)
+  bool loading = false;   // đang gửi lên Firebase
+
+  return showDialog<bool>(
+    context: context,
+    barrierDismissible: false, // không cho bấm ra ngoài để đóng khi đang đổi
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setDialogState) {
+        Future<void> submit() async {
+          final current = currentController.text;
+          final next = newController.text;
+
+          // Kiểm tra trước khi gửi lên Firebase
+          String? problem;
+          if (current.isEmpty) {
+            problem = 'Vui lòng nhập mật khẩu hiện tại';
+          } else if (next.length < 6) {
+            problem = 'Mật khẩu mới phải có ít nhất 6 ký tự';
+          } else if (next != confirmController.text) {
+            problem = 'Mật khẩu nhập lại không khớp';
+          } else if (next == current) {
+            problem = 'Mật khẩu mới phải khác mật khẩu hiện tại';
+          }
+          if (problem != null) {
+            setDialogState(() => error = problem);
+            return;
+          }
+
+          setDialogState(() {
+            loading = true;
+            error = null;
+          });
+          try {
+            await AuthService.instance.changePassword(
+              currentPassword: current,
+              newPassword: next,
+            );
+            if (dialogContext.mounted) Navigator.pop(dialogContext, true);
+          } on AuthException catch (e) {
+            setDialogState(() {
+              loading = false;
+              error = e.message;
+            });
+          }
+        }
+
+        return AlertDialog(
+          title: const Text('Đổi mật khẩu'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: currentController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Mật khẩu hiện tại'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: newController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Mật khẩu mới (ít nhất 6 ký tự)'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: confirmController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Nhập lại mật khẩu mới'),
+                ),
+                if (error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(error!, style: const TextStyle(color: AppColors.pink, fontSize: 13)),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: loading ? null : () => Navigator.pop(dialogContext, false),
+              child: const Text('Hủy'),
+            ),
+            TextButton(
+              onPressed: loading ? null : submit,
+              child: loading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Lưu'),
+            ),
+          ],
+        );
+      },
     ),
   );
 }

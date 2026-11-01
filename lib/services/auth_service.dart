@@ -18,7 +18,7 @@ class AuthException implements Exception {
   String toString() => message;
 }
 
-/// Nơi DUY NHẤT xử lý tài khoản: đăng ký, đăng nhập, đăng xuất.
+/// Nơi DUY NHẤT xử lý tài khoản: đăng ký, đăng nhập, đổi mật khẩu, đăng xuất.
 /// Dùng Firebase Auth thật.
 ///
 /// Firebase không có kiểu "số điện thoại + mật khẩu", nên mình đổi
@@ -38,7 +38,6 @@ class AuthService {
   // ---------------------------------------------------------------
 
   /// Người đang đăng nhập (null = chưa đăng nhập).
-  /// Lấy thẳng từ Firebase, nên tắt app mở lại Firebase vẫn nhớ.
   AppUser? get currentUser {
     final user = _auth.currentUser;
     if (user == null) return null;
@@ -92,6 +91,45 @@ class AuthService {
         password: password,
       );
       return _toAppUser(result.user!);
+    } on FirebaseAuthException catch (e) {
+      throw AuthException(_messageFor(e));
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Đổi mật khẩu (MỚI)
+  // ---------------------------------------------------------------
+
+  /// Đổi mật khẩu cho người đang đăng nhập.
+  /// Firebase yêu cầu XÁC MINH LẠI (nhập mật khẩu hiện tại) trước khi đổi,
+  /// để người khác cầm máy đang đăng nhập cũng không đổi được.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    final email = user?.email;
+    if (user == null || email == null) {
+      throw AuthException('Bạn cần đăng nhập lại để đổi mật khẩu');
+    }
+
+    // 1. Xác minh lại bằng mật khẩu hiện tại.
+    try {
+      final credential = EmailAuthProvider.credential(
+        email: email,
+        password: currentPassword,
+      );
+      await user.reauthenticateWithCredential(credential);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'invalid-credential' || e.code == 'wrong-password') {
+        throw AuthException('Mật khẩu hiện tại không đúng');
+      }
+      throw AuthException(_messageFor(e));
+    }
+
+    // 2. Đặt mật khẩu mới.
+    try {
+      await user.updatePassword(newPassword);
     } on FirebaseAuthException catch (e) {
       throw AuthException(_messageFor(e));
     }
@@ -162,6 +200,8 @@ class AuthService {
         return 'Không có kết nối mạng, vui lòng kiểm tra lại';
       case 'operation-not-allowed':
         return 'Chưa bật đăng nhập Email/Password trên Firebase';
+      case 'requires-recent-login':
+        return 'Vui lòng đăng xuất rồi đăng nhập lại, sau đó thử lại';
       default:
         return 'Có lỗi xảy ra (${e.code}), vui lòng thử lại';
     }
