@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:windowSplashScreenBackground">@color/lunas_splash_background</item>
+        <!-- Transparent mark stays within Android 12's 192dp circular mask. -->
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/lunas_splash_android12</item>
+    </style>
+</resources>
