@@ -68,6 +68,7 @@ class BookingRepository {
   ///
   /// - userId luôn là uid của người đang đăng nhập (Security Rules sẽ kiểm tra lại).
   /// - Tổng tiền và tổng thời lượng được tính lại tại đây từ dịch vụ.
+  /// - [image] là link ảnh của mẫu tóc đã chọn (có thể để trống).
   Future<String> createBooking({
     required BookingService mainService,
     required List<BookingAdditionalService> additionalServices,
@@ -75,6 +76,7 @@ class BookingRepository {
     required DateTime date,
     required String time, // dạng "HH:mm"
     String salonAddress = '',
+    String image = '',
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -100,7 +102,7 @@ class BookingRepository {
       );
     }
 
-        final totalPrice = mainService.price +
+    final totalPrice = mainService.price +
         additionalServices.fold<int>(0, (total, s) => total + s.price);
     final totalDuration = mainService.durationMinutes +
         additionalServices.fold<int>(
@@ -129,7 +131,7 @@ class BookingRepository {
       'totalPrice': totalPrice,
       'status': 'pending',
       'stylistName': null,
-      'image': '',
+      'image': image,
       'createdAt': FieldValue.serverTimestamp(),
     };
 

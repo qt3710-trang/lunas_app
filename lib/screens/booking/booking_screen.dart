@@ -3,11 +3,13 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/data/booking_selection.dart';
 import '../../models/booking_models.dart';
 import '../../repositories/booking_repository.dart';
 
-/// Đặt lịch làm tóc. Catalog và giờ hoạt động được đọc từ Firestore;
-/// nút xác nhận ghi lịch hẹn vào collection 'bookings'.
+/// Đặt lịch làm tóc. Mẫu tóc được mang sang từ tab Mẫu (bookingSelection);
+/// giờ hoạt động và dịch vụ thêm đọc từ Firestore; nút xác nhận ghi lịch
+/// hẹn vào collection 'bookings'.
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
 
@@ -29,6 +31,9 @@ class _BookingScreenState extends State<BookingScreen> {
   Object? _loadError;
   bool _isLoading = true;
 
+  /// Mẫu tóc đang đặt (lấy từ tab Mẫu). Null nghĩa là chưa chọn.
+  BookingChoice? _choice;
+
   DateTime _selectedDate = DateUtils.dateOnly(DateTime.now());
   String? _selectedTime;
   Set<String> _selectedExtras = {};
@@ -39,13 +44,57 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   void initState() {
     super.initState();
+    _choice = bookingSelection.value;
+    bookingSelection.addListener(_onSelectionChanged);
     _loadCatalog();
   }
 
+  @override
+  void dispose() {
+    bookingSelection.removeListener(_onSelectionChanged);
+    super.dispose();
+  }
+
+  /// Tab Mẫu vừa chọn (hoặc xóa) mẫu để đặt lịch.
+  void _onSelectionChanged() {
+    final next = bookingSelection.value;
+    if (!mounted) return;
+    if (next == null) {
+      // Đang hiện màn thành công thì giữ nguyên cho tới khi người dùng thoát.
+      if (_isConfirmed) return;
+      setState(() => _choice = null);
+      return;
+    }
+    // Chọn mẫu mới: bắt đầu một lịch mới.
+    setState(() {
+      _choice = next;
+      _isConfirmed = false;
+      _bookingCode = '';
+      _selectedExtras = {};
+      _selectedTime = null;
+      _selectedDate = DateUtils.dateOnly(DateTime.now());
+    });
+  }
+
+  /// Dịch vụ chính được dựng từ mẫu tóc đã chọn.
+  BookingService? get _mainService {
+    final choice = _choice;
+    if (choice == null) return null;
+    return BookingService(
+      id: choice.style.id,
+      name: choice.style.name,
+      description: 'Màu ${choice.color.label} · ${choice.style.tagline}',
+      price: choice.price,
+      durationMinutes: choice.durationMinutes,
+      category: 'hair-style',
+      isActive: true,
+    );
+  }
+
   int get _totalDuration {
-    final catalog = _catalog;
-    if (catalog == null) return 0;
-    return catalog.mainService.durationMinutes +
+    final main = _mainService;
+    if (main == null) return 0;
+    return main.durationMinutes +
         _selectedServices.fold<int>(
           0,
           (total, service) => total + service.durationMinutes,
@@ -53,9 +102,9 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   int get _totalPrice {
-    final catalog = _catalog;
-    if (catalog == null) return 0;
-    return catalog.mainService.price +
+    final main = _mainService;
+    if (main == null) return 0;
+    return main.price +
         _selectedServices.fold<int>(
           0,
           (total, service) => total + service.price,
@@ -70,13 +119,33 @@ class _BookingScreenState extends State<BookingScreen> {
         .toList(growable: false);
   }
 
-  List<String> _startTimesFor(BookingCatalog catalog, Set<String> selectedIds) {
+  /// Các giờ bắt đầu hợp lệ: đủ thời lượng trước giờ đóng cửa,
+  /// và nếu chọn hôm nay thì bỏ các giờ đã qua.
+  List<String> _timesFor(Set<String> extraIds, DateTime date) {
+    final catalog = _catalog;
+    final main = _mainService;
+    if (catalog == null || main == null) return const [];
     final duration =
-        catalog.mainService.durationMinutes +
+        main.durationMinutes +
         catalog.additionalServices
-            .where((service) => selectedIds.contains(service.id))
+            .where((service) => extraIds.contains(service.id))
             .fold<int>(0, (total, service) => total + service.durationMinutes);
-    return catalog.salonSettings.startTimesForDuration(duration);
+    final all = catalog.salonSettings.startTimesForDuration(duration);
+    final now = DateTime.now();
+    if (!DateUtils.isSameDay(date, now)) return all;
+    return all
+        .where((time) {
+          final parts = time.split(':');
+          final start = DateTime(
+            date.year,
+            date.month,
+            date.day,
+            int.parse(parts[0]),
+            int.parse(parts[1]),
+          );
+          return start.isAfter(now);
+        })
+        .toList(growable: false);
   }
 
   Future<void> _loadCatalog() async {
@@ -86,18 +155,9 @@ class _BookingScreenState extends State<BookingScreen> {
     });
     try {
       final catalog = await _repository.loadCatalog();
-      final initialExtras = <String>{
-        if (catalog.additionalServices.any(
-          (service) => service.id == 'goi-say-tao-kieu',
-        ))
-          'goi-say-tao-kieu',
-      };
-      final times = _startTimesFor(catalog, initialExtras);
       if (!mounted) return;
       setState(() {
         _catalog = catalog;
-        _selectedExtras = initialExtras;
-        _selectedTime = times.contains('13:00') ? '13:00' : times.firstOrNull;
         _isLoading = false;
       });
     } catch (error) {
@@ -112,13 +172,18 @@ class _BookingScreenState extends State<BookingScreen> {
   void _toggleExtra(String id) {
     final nextExtras = Set<String>.of(_selectedExtras);
     if (!nextExtras.add(id)) nextExtras.remove(id);
-    final catalog = _catalog;
-    final times = catalog == null
-        ? const <String>[]
-        : _startTimesFor(catalog, nextExtras);
+    final times = _timesFor(nextExtras, _selectedDate);
     setState(() {
       _selectedExtras = nextExtras;
-      if (!times.contains(_selectedTime)) _selectedTime = times.firstOrNull;
+      if (!times.contains(_selectedTime)) _selectedTime = null;
+    });
+  }
+
+  void _changeDate(DateTime date) {
+    final times = _timesFor(_selectedExtras, date);
+    setState(() {
+      _selectedDate = date;
+      if (!times.contains(_selectedTime)) _selectedTime = null;
     });
   }
 
@@ -141,13 +206,15 @@ class _BookingScreenState extends State<BookingScreen> {
         child: child!,
       ),
     );
-    if (picked != null && mounted) setState(() => _selectedDate = picked);
+    if (picked != null && mounted) _changeDate(picked);
   }
 
   Future<void> _confirmBooking() async {
     if (_isSaving) return; // đang lưu thì bỏ qua lần bấm thứ hai
     final catalog = _catalog;
-    if (catalog == null) return;
+    final choice = _choice;
+    final main = _mainService;
+    if (catalog == null || choice == null || main == null) return;
     final settings = catalog.salonSettings;
     if (!settings.isBookingEnabled) {
       _showLocalMessage(context, 'Salon hiện đang tạm ngưng nhận đặt lịch.');
@@ -155,18 +222,19 @@ class _BookingScreenState extends State<BookingScreen> {
     }
     final time = _selectedTime;
     if (time == null) {
-      _showLocalMessage(context, 'Không có giờ phù hợp trước giờ đóng cửa.');
+      _showLocalMessage(context, 'Bạn hãy chọn giờ hẹn trước nhé.');
       return;
     }
 
     setState(() => _isSaving = true);
     try {
       final code = await _repository.createBooking(
-        mainService: catalog.mainService,
+        mainService: main,
         additionalServices: _selectedServices,
         salonSettings: settings,
         date: _selectedDate,
         time: time,
+        image: choice.imageUrl ?? '',
       );
       if (!mounted) return;
       setState(() {
@@ -174,6 +242,8 @@ class _BookingScreenState extends State<BookingScreen> {
         _isConfirmed = true;
         _isSaving = false;
       });
+      // Lịch đã đặt xong, bỏ mẫu đã chọn (màn thành công vẫn giữ bản sao).
+      bookingSelection.clear();
     } catch (error) {
       if (!mounted) return;
       setState(() => _isSaving = false);
@@ -182,6 +252,18 @@ class _BookingScreenState extends State<BookingScreen> {
           : 'Không thể lưu lịch hẹn. Hãy thử lại sau.';
       _showLocalMessage(context, message);
     }
+  }
+
+  /// Thoát màn thành công, quay về trạng thái "chưa chọn mẫu".
+  void _resetAfterSuccess() {
+    setState(() {
+      _isConfirmed = false;
+      _choice = null;
+      _bookingCode = '';
+      _selectedExtras = {};
+      _selectedTime = null;
+      _selectedDate = DateUtils.dateOnly(DateTime.now());
+    });
   }
 
   @override
@@ -212,42 +294,37 @@ class _BookingScreenState extends State<BookingScreen> {
                 ? _SuccessContent(
                     key: const ValueKey('booking-success'),
                     bookingCode: _bookingCode,
-                    mainService: _catalog!.mainService,
+                    mainService: _mainService!,
+                    imageUrl: _choice?.imageUrl,
                     selectedServices: _selectedServices,
                     selectedDate: _selectedDate,
                     selectedTime: _selectedTime!,
                     totalDuration: _totalDuration,
                     totalPrice: _totalPrice,
                     salonSettings: _catalog!.salonSettings,
+                    onReset: _resetAfterSuccess,
                   )
+                : _choice == null
+                ? const _NoStyleState(key: ValueKey('booking-no-style'))
                 : _BookingForm(
                     key: const ValueKey('booking-form'),
-                    mainService: _catalog!.mainService,
+                    mainService: _mainService!,
+                    imageUrl: _choice?.imageUrl,
                     additionalServices: _catalog!.additionalServices,
                     salonSettings: _catalog!.salonSettings,
-                    availableTimes: _startTimesFor(_catalog!, _selectedExtras),
+                    availableTimes: _timesFor(_selectedExtras, _selectedDate),
                     selectedDate: _selectedDate,
                     selectedTime: _selectedTime,
                     selectedExtras: _selectedExtras,
                     totalDuration: _totalDuration,
                     totalPrice: _totalPrice,
                     isSaving: _isSaving,
-                    onDateChanged: (date) {
-                      setState(() {
-                        _selectedDate = date;
-                        final times = _startTimesFor(
-                          _catalog!,
-                          _selectedExtras,
-                        );
-                        if (!times.contains(_selectedTime)) {
-                          _selectedTime = times.firstOrNull;
-                        }
-                      });
-                    },
+                    onDateChanged: _changeDate,
                     onChooseDate: _chooseDate,
                     onTimeChanged: (time) =>
                         setState(() => _selectedTime = time),
                     onExtraChanged: _toggleExtra,
+                    onChangeStyle: () => context.go('/styles'),
                     onConfirm: _confirmBooking,
                   ),
           ),
@@ -342,6 +419,73 @@ class _BookingErrorState extends StatelessWidget {
   );
 }
 
+/// Hiện khi chưa chọn mẫu tóc nào từ tab Mẫu.
+class _NoStyleState extends StatelessWidget {
+  const _NoStyleState({super.key});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 10, 20, 26),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _PageHeading(
+          title: 'Đặt lịch làm tóc',
+          subtitle: 'Chọn kiểu tóc bạn thích, LUNAS sẽ lo phần còn lại.',
+        ),
+        Expanded(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.content_cut,
+                  size: 46,
+                  color: _BookingScreenState._muted,
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Bạn chưa chọn kiểu tóc',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _BookingScreenState._ink,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 17,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Hãy chọn một mẫu ở tab Mẫu, rồi bấm "Đặt lịch với mẫu này" để tiếp tục.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _BookingScreenState._muted,
+                    height: 1.4,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                ElevatedButton.icon(
+                  onPressed: () => context.go('/styles'),
+                  icon: const Icon(Icons.grid_view_rounded, size: 18),
+                  label: const Text('Chọn mẫu'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _BookingScreenState._teal,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(160, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class _BookingNotice extends StatelessWidget {
   const _BookingNotice({
     required this.icon,
@@ -384,10 +528,59 @@ class _BookingNotice extends StatelessWidget {
   );
 }
 
+/// Ảnh mẫu tóc; không có ảnh hoặc tải lỗi thì hiện biểu tượng.
+class _StyleImage extends StatelessWidget {
+  const _StyleImage({
+    required this.imageUrl,
+    required this.width,
+    required this.height,
+    required this.iconSize,
+  });
+
+  final String? imageUrl;
+  final double width;
+  final double height;
+  final double iconSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = Icon(
+      Icons.face_3_outlined,
+      size: iconSize,
+      color: const Color(0xFFAA827E),
+    );
+    final url = imageUrl;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(13),
+      child: Container(
+        width: width,
+        height: height,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF3DCD5), Color(0xFFE9E7E1)],
+          ),
+        ),
+        child: (url == null || url.isEmpty)
+            ? fallback
+            : Image.network(
+                url,
+                width: width,
+                height: height,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => fallback,
+              ),
+      ),
+    );
+  }
+}
+
 class _BookingForm extends StatelessWidget {
   const _BookingForm({
     super.key,
     required this.mainService,
+    required this.imageUrl,
     required this.additionalServices,
     required this.salonSettings,
     required this.availableTimes,
@@ -401,6 +594,7 @@ class _BookingForm extends StatelessWidget {
     required this.onChooseDate,
     required this.onTimeChanged,
     required this.onExtraChanged,
+    required this.onChangeStyle,
     required this.onConfirm,
   });
 
@@ -408,6 +602,7 @@ class _BookingForm extends StatelessWidget {
   static const _teal = _BookingScreenState._teal;
 
   final BookingService mainService;
+  final String? imageUrl;
   final List<BookingAdditionalService> additionalServices;
   final SalonSettings salonSettings;
   final List<String> availableTimes;
@@ -421,6 +616,7 @@ class _BookingForm extends StatelessWidget {
   final VoidCallback onChooseDate;
   final ValueChanged<String> onTimeChanged;
   final ValueChanged<String> onExtraChanged;
+  final VoidCallback onChangeStyle;
   final VoidCallback onConfirm;
 
   @override
@@ -436,7 +632,7 @@ class _BookingForm extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _PageHeading(
+          const _PageHeading(
             title: 'Đặt lịch làm tóc',
             subtitle:
                 'Chọn thời gian phù hợp để LUNAS chăm sóc mái tóc của bạn.',
@@ -449,7 +645,11 @@ class _BookingForm extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 18),
-          _MainServiceCard(service: mainService),
+          _MainServiceCard(
+            service: mainService,
+            imageUrl: imageUrl,
+            onChange: onChangeStyle,
+          ),
           const SizedBox(height: 24),
           _SectionHeading(
             icon: Icons.calendar_month_outlined,
@@ -494,7 +694,8 @@ class _BookingForm extends StatelessWidget {
           const SizedBox(height: 10),
           const _BookingNotice(
             icon: Icons.info_outline,
-            message: 'Giờ được tính theo thời lượng dịch vụ và giờ hoạt động; chưa kiểm tra lịch đã đặt.',
+            message:
+                'Giờ được tính theo thời lượng dịch vụ và giờ hoạt động; chưa kiểm tra lịch đã đặt.',
             compact: true,
           ),
           const SizedBox(height: 9),
@@ -505,7 +706,8 @@ class _BookingForm extends StatelessWidget {
               if (availableTimes.isEmpty) {
                 return const _BookingNotice(
                   icon: Icons.event_busy_outlined,
-                  message: 'Không có giờ bắt đầu nào đủ thời lượng trước giờ đóng cửa.',
+                  message:
+                      'Không còn giờ bắt đầu nào phù hợp trong ngày này. Hãy thử chọn ngày khác.',
                   compact: true,
                 );
               }
@@ -652,9 +854,15 @@ class _PageHeading extends StatelessWidget {
 }
 
 class _MainServiceCard extends StatelessWidget {
-  const _MainServiceCard({required this.service});
+  const _MainServiceCard({
+    required this.service,
+    required this.imageUrl,
+    required this.onChange,
+  });
 
   final BookingService service;
+  final String? imageUrl;
+  final VoidCallback onChange;
 
   @override
   Widget build(BuildContext context) {
@@ -674,80 +882,73 @@ class _MainServiceCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
+          _StyleImage(
+            imageUrl: imageUrl,
             width: 92,
             height: 104,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(13),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFFF3DCD5), Color(0xFFE9E7E1)],
-              ),
-            ),
-            child: const Icon(
-              Icons.face_3_outlined,
-              size: 49,
-              color: Color(0xFFAA827E),
-            ),
+            iconSize: 49,
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        service.name,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    Icon(
-                      Icons.check_circle,
-                      size: 22,
-                      color: _BookingScreenState._teal,
-                    ),
-                  ],
+                Text(
+                  service.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   service.description,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: _BookingScreenState._muted,
                     height: 1.35,
                     fontSize: 12,
                   ),
                 ),
-                SizedBox(height: 11),
+                const SizedBox(height: 11),
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.access_time,
                       size: 15,
                       color: _BookingScreenState._muted,
                     ),
-                    SizedBox(width: 5),
+                    const SizedBox(width: 5),
                     Text(
                       '${service.durationMinutes} phút',
-                      style: TextStyle(fontSize: 12),
+                      style: const TextStyle(fontSize: 12),
                     ),
-                    SizedBox(width: 10),
-                    Icon(
+                    const SizedBox(width: 10),
+                    const Icon(
                       Icons.paid_outlined,
                       size: 15,
                       color: _BookingScreenState._muted,
                     ),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Text(
-                      '${_formatMoney(service.price)}đ',
+                      'Từ ${_formatMoney(service.price)}đ',
                       style: const TextStyle(fontSize: 12),
                     ),
                   ],
+                ),
+                const SizedBox(height: 4),
+                TextButton(
+                  onPressed: onChange,
+                  style: TextButton.styleFrom(
+                    foregroundColor: _BookingScreenState._teal,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 28),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  child: const Text('Đổi mẫu'),
                 ),
               ],
             ),
@@ -1134,10 +1335,13 @@ class _BookingSummary extends StatelessWidget {
                   children: [
                     const _SummaryLabel(
                       icon: Icons.content_cut,
-                      label: 'Dịch vụ chính',
+                      label: 'Kiểu tóc',
                     ),
                     const SizedBox(height: 4),
-                    Text(mainService.name, style: TextStyle(fontSize: 12)),
+                    Text(
+                      mainService.name,
+                      style: const TextStyle(fontSize: 12),
+                    ),
                     const SizedBox(height: 8),
                     const _SummaryLabel(icon: Icons.add, label: 'Dịch vụ thêm'),
                     const SizedBox(height: 4),
@@ -1180,7 +1384,7 @@ class _BookingSummary extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       selectedTime == null
-                          ? 'Chưa có giờ phù hợp'
+                          ? 'Chưa chọn giờ'
                           : '$selectedTime ($totalDuration phút)',
                       style: const TextStyle(fontSize: 12),
                     ),
@@ -1241,22 +1445,26 @@ class _SuccessContent extends StatelessWidget {
     super.key,
     required this.bookingCode,
     required this.mainService,
+    required this.imageUrl,
     required this.selectedServices,
     required this.selectedDate,
     required this.selectedTime,
     required this.totalDuration,
     required this.totalPrice,
     required this.salonSettings,
+    required this.onReset,
   });
 
   final String bookingCode;
   final BookingService mainService;
+  final String? imageUrl;
   final List<BookingAdditionalService> selectedServices;
   final DateTime selectedDate;
   final String selectedTime;
   final int totalDuration;
   final int totalPrice;
   final SalonSettings salonSettings;
+  final VoidCallback onReset;
 
   @override
   Widget build(BuildContext context) {
@@ -1337,6 +1545,7 @@ class _SuccessContent extends StatelessWidget {
           const SizedBox(height: 22),
           _SuccessServiceCard(
             mainService: mainService,
+            imageUrl: imageUrl,
             selectedServices: selectedServices,
             totalPrice: totalPrice,
           ),
@@ -1441,7 +1650,10 @@ class _SuccessContent extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => context.go('/home'),
+              onPressed: () {
+                onReset();
+                context.go('/home');
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: _BookingScreenState._teal,
                 foregroundColor: Colors.white,
@@ -1453,7 +1665,18 @@ class _SuccessContent extends StatelessWidget {
               child: const Text('Về trang chủ'),
             ),
           ),
-          const SizedBox(height: 19),
+          const SizedBox(height: 6),
+          TextButton(
+            onPressed: () {
+              onReset();
+              context.go('/styles');
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: _BookingScreenState._teal,
+            ),
+            child: const Text('Đặt thêm lịch khác'),
+          ),
+          const SizedBox(height: 13),
           const Text(
             '—    Your hair, your story    —',
             style: TextStyle(
@@ -1471,11 +1694,13 @@ class _SuccessContent extends StatelessWidget {
 class _SuccessServiceCard extends StatelessWidget {
   const _SuccessServiceCard({
     required this.mainService,
+    required this.imageUrl,
     required this.selectedServices,
     required this.totalPrice,
   });
 
   final BookingService mainService;
+  final String? imageUrl;
   final List<BookingAdditionalService> selectedServices;
   final int totalPrice;
 
@@ -1489,23 +1714,7 @@ class _SuccessServiceCard extends StatelessWidget {
     ),
     child: Row(
       children: [
-        Container(
-          width: 94,
-          height: 120,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(13),
-            gradient: const LinearGradient(
-              colors: [Color(0xFFF2DDD6), Color(0xFFE9E6E2)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: const Icon(
-            Icons.face_3_outlined,
-            size: 46,
-            color: Color(0xFFAA827E),
-          ),
-        ),
+        _StyleImage(imageUrl: imageUrl, width: 94, height: 120, iconSize: 46),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -1513,12 +1722,15 @@ class _SuccessServiceCard extends StatelessWidget {
             children: [
               Text(
                 mainService.name,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 mainService.description,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
                   color: _BookingScreenState._muted,
                   height: 1.35,
