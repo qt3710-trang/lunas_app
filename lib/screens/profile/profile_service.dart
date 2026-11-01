@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,14 +19,12 @@ import 'profile_models.dart';
 ///  - Dáng mặt, tông da, phong cách...: lưu trên Firestore qua API
 ///    (GET /me, PUT /me), kèm một bản trên máy để dùng khi mất mạng.
 ///  - Mẫu đã lưu: chính là các mẫu bấm tim ở tab Mẫu (favoriteStyles).
+///  - Lịch hẹn: đọc từ collection 'bookings' trên Firestore
+///    (do tab Đặt lịch ghi vào), hủy lịch = đổi status thành 'cancelled'.
 ///  - AI gợi ý: chọn từ bộ sưu tập kiểu tóc thật, theo vibe (chưa phải AI thật).
-///
-/// CÒN GIẢ: lịch hẹn.
 class ProfileService {
   ProfileService._();
   static final instance = ProfileService._();
-
-  static const _img = 'assets/images/hairstyles';
 
   /// Hồ sơ dự phòng khi chưa đăng nhập (không nên xảy ra vì router đã chặn).
   static const _guestProfile = UserProfile(id: 'guest', name: 'Khách', phone: '');
@@ -34,49 +34,6 @@ class ProfileService {
 
   /// Tên "ô nhớ" trên máy của từng tài khoản: profile_<uid>
   String _keyFor(String uid) => 'profile_$uid';
-
-  // ---------- Lịch hẹn (còn giả) ----------
-
-  /// Lịch hẹn giả, tính ngày theo hôm nay để lúc nào cũng có lịch "sắp tới".
-  late final List<Appointment> _appointments = _makeDemoAppointments();
-
-  List<Appointment> _makeDemoAppointments() {
-    final now = DateTime.now();
-    // day(3, 10) = 3 ngày nữa, lúc 10 giờ. day(-11, 15) = 11 ngày trước, 15 giờ.
-    DateTime day(int offset, int hour) =>
-        DateTime(now.year, now.month, now.day + offset, hour);
-
-    const salon = 'LUNAS Hair Studio - Quận 1';
-    const address = '123 Đường Hoa Mai, Quận 1, TP.HCM';
-
-    return [
-      Appointment(
-        id: 'a1', code: '#LUNAS1031', serviceName: 'Cắt + Nhuộm',
-        salonName: salon, salonAddress: address,
-        startTime: day(3, 10), image: '$_img/butterfly_layer.jpg',
-        totalPrice: 750000, status: AppointmentStatus.confirmed,
-        stylistName: 'Chị Mai (Hair Stylist)',
-      ),
-      Appointment(
-        id: 'a2', code: '#LUNAS0915', serviceName: 'Tạo kiểu layer',
-        salonName: salon, salonAddress: address,
-        startTime: day(-11, 15), image: '$_img/layer_bong_benh.jpg',
-        totalPrice: 300000, status: AppointmentStatus.completed,
-      ),
-      Appointment(
-        id: 'a3', code: '#LUNAS0820', serviceName: 'Nhuộm nâu trà sữa',
-        salonName: salon, salonAddress: address,
-        startTime: day(-20, 14), image: '$_img/uon_song_tra_sua.jpg',
-        totalPrice: 650000, status: AppointmentStatus.completed,
-      ),
-      Appointment(
-        id: 'a4', code: '#LUNAS0712', serviceName: 'Uốn sóng lơi',
-        salonName: salon, salonAddress: address,
-        startTime: day(-32, 11), image: '$_img/bob_xoan.jpg',
-        totalPrice: 450000, status: AppointmentStatus.completed,
-      ),
-    ];
-  }
 
   // ---------- Hồ sơ (lưu trên Firestore qua API) ----------
 
@@ -258,22 +215,51 @@ class ProfileService {
     favoriteStyles.add(style.id);
   }
 
-  // ---------- Lịch hẹn (còn giả) ----------
+  // ---------- Lịch hẹn (đọc thật từ Firestore) ----------
 
-  /// Lấy lịch hẹn của người dùng, mới nhất lên trước.
+  /// Lấy lịch hẹn của người đang đăng nhập, mới nhất lên trước.
+  /// Chỉ lọc theo userId (Security Rules cũng chỉ cho đọc lịch của chính mình),
+  /// việc sắp xếp làm trong app nên không cần tạo index trên Firestore.
+  /// Lỗi mạng / lỗi quyền -> trả về danh sách rỗng để màn hình không bị treo.
   Future<List<Appointment>> getAppointments() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    final list = List.of(_appointments);
-    list.sort((a, b) => b.startTime.compareTo(a.startTime));
-    return list;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return [];
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('bookings')
+          .where('userId', isEqualTo: uid)
+          .get()
+          .timeout(const Duration(seconds: 15));
+      final list = [
+        for (final doc in snapshot.docs) Appointment.fromMap(doc.id, doc.data()),
+      ];
+      list.sort((a, b) => b.startTime.compareTo(a.startTime));
+      return list;
+    } catch (error) {
+      developer.log(
+        'getAppointments error: $error',
+        name: 'lunas.profile.appointments',
+      );
+      return [];
+    }
   }
 
-  /// Hủy một lịch hẹn: đổi trạng thái thành "Đã hủy".
-  Future<void> cancelAppointment(String id) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    final i = _appointments.indexWhere((a) => a.id == id);
-    if (i >= 0) {
-      _appointments[i] = _appointments[i].copyWith(status: AppointmentStatus.cancelled);
+  /// Hủy một lịch hẹn: đổi status thành 'cancelled' (đúng Security Rules:
+  /// chỉ chủ lịch được đổi, chỉ đổi trường status, chỉ từ pending/confirmed).
+  /// Trả về true nếu hủy được, false nếu lỗi (mất mạng, bị từ chối quyền...).
+  Future<bool> cancelAppointment(String id) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('bookings')
+          .doc(id)
+          .update({'status': 'cancelled'}).timeout(const Duration(seconds: 15));
+      return true;
+    } catch (error) {
+      developer.log(
+        'cancelAppointment error: $error',
+        name: 'lunas.profile.appointments',
+      );
+      return false;
     }
   }
 
