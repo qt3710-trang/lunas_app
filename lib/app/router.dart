@@ -1,7 +1,11 @@
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart' show ImageSource;
 
 import 'data/hair_style.dart';
+import '../screens/ar_try/ar_menu_screen.dart';
 import '../screens/ar_try/ar_try_screen.dart';
+import '../screens/ar_try/static_try_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/booking/booking_screen.dart';
@@ -55,7 +59,10 @@ final appRouter = GoRouter(
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
 
     // Đăng ký tài khoản (mở từ màn Đăng nhập)
-    GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
+    GoRoute(
+      path: '/register',
+      builder: (context, state) => const RegisterScreen(),
+    ),
 
     // 5 tab chính, dùng chung thanh menu dưới.
     // Mỗi tab giữ nguyên trạng thái khi chuyển qua lại.
@@ -63,37 +70,81 @@ final appRouter = GoRouter(
       builder: (context, state, navigationShell) =>
           MainShell(navigationShell: navigationShell),
       branches: [
-        StatefulShellBranch(routes: [
-          GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
-        ]),
-        StatefulShellBranch(routes: [
-          GoRoute(
-            path: '/styles',
-            builder: (context, state) => const StylesScreen(),
-            routes: [
-              // Chi tiết mẫu tóc, vẫn nằm trong tab Mẫu nên giữ thanh menu dưới.
-              GoRoute(
-                path: ':id',
-                // ?color=red: mở sẵn đúng màu đang xem ở danh sách.
-                builder: (context, state) => HairStyleDetailScreen(
-                  styleId: state.pathParameters['id']!,
-                  initialColor: HairColor.values
-                      .asNameMap()[state.uri.queryParameters['color']],
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/home',
+              builder: (context, state) => const HomeScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/styles',
+              builder: (context, state) => const StylesScreen(),
+              routes: [
+                // Chi tiết mẫu tóc, vẫn nằm trong tab Mẫu nên giữ thanh menu dưới.
+                GoRoute(
+                  path: ':id',
+                  // ?color=red: mở sẵn đúng màu đang xem ở danh sách.
+                  builder: (context, state) => HairStyleDetailScreen(
+                    styleId: state.pathParameters['id']!,
+                    initialColor: HairColor.values
+                        .asNameMap()[state.uri.queryParameters['color']],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ]),
-        StatefulShellBranch(routes: [
-          GoRoute(path: '/ar', builder: (context, state) => const ArTryScreen()),
-        ]),
-        StatefulShellBranch(routes: [
-          GoRoute(path: '/booking', builder: (context, state) => const BookingScreen()),
-        ]),
-        StatefulShellBranch(routes: [
-          GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
-        ]),
+              ],
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/ar',
+              // Màn chọn cách thử tóc, bấm vào từng thẻ để mở màn con bên dưới.
+              builder: (context, state) => const ArMenuScreen(),
+              routes: [
+                // Thử qua camera trực tiếp (nút "Thử với AR" ở trang mẫu mở thẳng vào đây).
+                GoRoute(
+                  path: 'live',
+                  builder: (context, state) => const ArTryOnScreen(),
+                  routes: [
+                    // Nút "Chọn ảnh" trên màn camera, back thì về lại camera.
+                    GoRoute(path: 'photo', builder: _photoScreen),
+                  ],
+                ),
+                // Thử qua ảnh có sẵn / chụp mới.
+                GoRoute(path: 'photo', builder: _photoScreen),
+              ],
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/booking',
+              builder: (context, state) => const BookingScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/profile',
+              builder: (context, state) => const ProfileScreen(),
+            ),
+          ],
+        ),
       ],
     ),
   ],
 );
+
+/// Màn thử bằng ảnh. ?pick=gallery thì mở thư viện ảnh ngay khi vào.
+Widget _photoScreen(BuildContext context, GoRouterState state) =>
+    StaticTryScreen(
+      pickOnOpen: state.uri.queryParameters['pick'] == 'gallery'
+          ? ImageSource.gallery
+          : null,
+    );
