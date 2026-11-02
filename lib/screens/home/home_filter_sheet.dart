@@ -15,7 +15,7 @@ class HomeHairFilter {
   bool matches(HomeHairStyle item) =>
       (length == null || item.length == length) &&
       (style == null || item.hairStyles.contains(style)) &&
-      (color == null || item.hairColor == color);
+      (color == null || item.hasColor(color!));
 }
 
 Future<HomeHairFilter?> showHomeHairFilterSheet(

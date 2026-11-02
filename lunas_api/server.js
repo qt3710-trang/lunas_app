@@ -83,7 +83,10 @@ async function requireUser(req, res, next) {
 }
 
 // Chỉ cho phép lưu các trường này (không cho app ghi linh tinh vào database).
-const PROFILE_FIELDS = ['name', 'favoriteHair', 'styleTags', 'faceShape', 'skinTone', 'weeklyNotify'];
+// favorites = danh sách mã kiểu tóc đã bấm tim, ví dụ ["bob-han-quoc", "hush-cut"].
+const PROFILE_FIELDS = [
+  'name', 'favoriteHair', 'styleTags', 'faceShape', 'skinTone', 'weeklyNotify', 'favorites',
+];
 
 // GET /me -> hồ sơ của người đang đăng nhập (người mới: chỉ có id)
 app.get('/me', requireUser, async (req, res) => {
@@ -96,13 +99,25 @@ app.get('/me', requireUser, async (req, res) => {
   }
 });
 
-// PUT /me -> lưu hồ sơ (chỉ các trường trong PROFILE_FIELDS)
+// PUT /me -> lưu hồ sơ (chỉ các trường trong PROFILE_FIELDS).
+// Gửi trường nào thì cập nhật trường đó, các trường khác giữ nguyên (merge).
 app.put('/me', requireUser, async (req, res) => {
   try {
     const data = {};
     for (const key of PROFILE_FIELDS) {
       if (key in req.body) data[key] = req.body[key];
     }
+
+    // favorites phải là danh sách chữ; giữ tối đa 200 mẫu cho gọn.
+    if ('favorites' in data) {
+      if (!Array.isArray(data.favorites)) {
+        return res.status(400).json({ error: 'favorites phải là danh sách' });
+      }
+      data.favorites = data.favorites
+        .filter((x) => typeof x === 'string')
+        .slice(0, 200);
+    }
+
     await db.collection('users').doc(req.uid).set(data, { merge: true });
     res.json({ id: req.uid, ...data });
   } catch (e) {

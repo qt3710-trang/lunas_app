@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 /// Khuôn dữ liệu của một hồ sơ người dùng.
 class UserProfile {
   const UserProfile({
@@ -161,7 +163,8 @@ class Appointment {
     );
   }
 
-  /// Bài 8: đọc từ collection 'bookings' (do phần Đặt lịch ghi vào).
+  /// Đọc từ collection 'bookings' (do phần Đặt lịch ghi vào).
+  /// startTime trên Firestore là Timestamp nên đọc bằng _readDateTime.
   factory Appointment.fromMap(String id, Map<String, dynamic> map) {
     return Appointment(
       id: id,
@@ -169,13 +172,23 @@ class Appointment {
       serviceName: map['serviceName'] ?? '',
       salonName: map['salonName'] ?? '',
       salonAddress: map['salonAddress'] ?? '',
-      startTime: DateTime.fromMillisecondsSinceEpoch(map['startTime'] ?? 0),
+      startTime: _readDateTime(map['startTime']),
       image: map['image'] ?? '',
-      totalPrice: map['totalPrice'] ?? 0,
-      status: AppointmentStatus.fromName(map['status']),
-      stylistName: map['stylistName'],
+      totalPrice: (map['totalPrice'] as num?)?.toInt() ?? 0,
+      status: AppointmentStatus.fromName(map['status'] as String?),
+      stylistName: map['stylistName'] as String?,
     );
   }
+}
+
+/// Đổi giá trị thời gian đọc từ database thành DateTime.
+/// - Timestamp của Firestore -> .toDate()
+/// - Số mili giây (cách lưu cũ) -> DateTime.fromMillisecondsSinceEpoch
+/// - Không đọc được -> mốc 0 (không làm app bị sập).
+DateTime _readDateTime(Object? value) {
+  if (value is Timestamp) return value.toDate();
+  if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+  return DateTime.fromMillisecondsSinceEpoch(0);
 }
 
 // ---------- Hàm định dạng ----------

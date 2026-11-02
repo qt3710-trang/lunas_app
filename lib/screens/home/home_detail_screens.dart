@@ -9,16 +9,18 @@ class HomeStyleDetailScreen extends StatelessWidget {
   const HomeStyleDetailScreen({
     super.key,
     required this.style,
+    required this.styles,
     required this.onBack,
     required this.onSelectStyle,
   });
   final HomeHairStyle style;
+  final List<HomeHairStyle> styles;
   final VoidCallback onBack;
   final ValueChanged<HomeHairStyle> onSelectStyle;
 
   @override
   Widget build(BuildContext context) {
-    final similar = homeHairStyles
+    final similar = styles
         .where((item) => item.id != style.id && item.length == style.length)
         .take(4)
         .toList();
@@ -83,9 +85,9 @@ class HomeStyleDetailScreen extends StatelessWidget {
           const SizedBox(height: 20),
           Text('Gợi ý màu tóc', style: AppTheme.titleFont(size: 19)),
           const SizedBox(height: 8),
-          const Text(
-            'Nâu trà sữa · Nâu socola · Nâu lạnh',
-            style: TextStyle(color: AppColors.textGrey),
+          Text(
+            style.source.colors.map((color) => color.label).join(' · '),
+            style: const TextStyle(color: AppColors.textGrey),
           ),
           const SizedBox(height: 24),
           Text('Có thể bạn cũng thích', style: AppTheme.titleFont(size: 19)),

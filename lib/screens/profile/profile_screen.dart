@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/data/favorite_styles.dart';
+import '../../app/data/hair_style_api.dart';
 import '../../app/theme.dart';
 import 'ai_suggest_screen.dart';   // BÀI 7B
 import 'profile_models.dart';
@@ -26,8 +27,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    // Danh sách tim có thể về SAU khi Hồ sơ đã mở (tải từ server chậm),
+    // lúc đó mới biết cần tải thêm kiểu tóc để tra tên + ảnh.
+    favoriteStyles.addListener(_onFavoritesChanged);
     _load();
   }
+
+  @override
+  void dispose() {
+    favoriteStyles.removeListener(_onFavoritesChanged);
+    super.dispose();
+  }
+
+  void _onFavoritesChanged() => _service.ensureHairStylesLoaded();
 
   Future<void> _load() async {
     final profile = await _service.getProfile();
@@ -39,6 +51,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _appointments = appointments;
       _loading = false;
     });
+  }
+
+  /// Tải lại lịch hẹn từ Firestore (sau khi đặt lịch mới, hoặc khi kéo để làm mới).
+  Future<void> _refreshAppointments() async {
+    final list = await _service.getAppointments();
+    if (!mounted) return;
+    setState(() => _appointments = list);
   }
 
   void _toast(String message) {
@@ -156,10 +175,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
     if (ok != true) return;
-    await _service.cancelAppointment(a.id);
-    final list = await _service.getAppointments();
+
+    final success = await _service.cancelAppointment(a.id);
     if (!mounted) return;
-    setState(() => _appointments = list);
+    if (!success) {
+      _toast('Không hủy được lịch hẹn. Hãy kiểm tra kết nối rồi thử lại.');
+      return;
+    }
+    await _refreshAppointments();
+    if (!mounted) return;
     _toast('Đã hủy lịch hẹn ${a.code}');
   }
 
@@ -174,15 +198,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final profile = _profile!;
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildHeader(profile),
-            const SizedBox(height: 16),
-            _buildTabSwitcher(),
-            const SizedBox(height: 20),
-            if (_tab == 0) _buildSavedTab(profile) else _buildAppointmentsTab(),
-          ],
+        // Kéo xuống để tải lại lịch hẹn (ví dụ vừa đặt lịch ở tab Đặt lịch).
+        child: RefreshIndicator(
+          onRefresh: _refreshAppointments,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            children: [
+              _buildHeader(profile),
+              const SizedBox(height: 16),
+              _buildTabSwitcher(),
+              const SizedBox(height: 20),
+              if (_tab == 0) _buildSavedTab(profile) else _buildAppointmentsTab(),
+            ],
+          ),
         ),
       ),
     );
@@ -307,7 +336,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final selected = _tab == index;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _tab = index),
+        onTap: () {
+          setState(() => _tab = index);
+          // Mỗi lần bấm vào "Lịch hẹn" thì tải lại, để thấy lịch vừa đặt.
+          if (index == 1) _refreshAppointments();
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -336,9 +369,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         _sectionTitle('Mẫu tóc đã lưu', Icons.auto_awesome),
         const SizedBox(height: 12),
-        // Tự vẽ lại mỗi khi bấm / bỏ tim ở bất kỳ đâu (tab Mẫu, AI, Hồ sơ).
+        // Tự vẽ lại mỗi khi bấm / bỏ tim ở bất kỳ đâu (tab Mẫu, AI, Hồ sơ)
+        // và khi danh sách kiểu tóc vừa tải xong từ server.
         ListenableBuilder(
-          listenable: favoriteStyles,
+          listenable: Listenable.merge([favoriteStyles, hairStylesVersion]),
           builder: (context, _) {
             final saved = _service.savedStyles();
             if (saved.isEmpty) {

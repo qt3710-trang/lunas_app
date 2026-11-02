@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../app/data/hair_style.dart';
+
 enum HomeHairLength { short, shoulder, long }
 
 enum HomeHairType { layer, bob, pixie, wolfCut, hushCut, curly, straight }
@@ -18,369 +20,70 @@ enum HomeHairColor {
   final Color color;
 }
 
+/// Keeps Home's presentation backed by the same model used by Styles.
 class HomeHairStyle {
-  const HomeHairStyle({
-    required this.id,
-    required this.name,
-    required this.length,
-    required this.hairStyles,
-    required this.hairColor,
-    required this.description,
-    required this.image,
-    required this.color,
-    this.trending = false,
-    this.colorTrending = false,
-  });
-  final String id, name, description, image;
-  final HomeHairLength length;
-  final Set<HomeHairType> hairStyles;
-  final HomeHairColor hairColor;
-  final Color color;
-  final bool trending, colorTrending;
+  const HomeHairStyle(this.source, {this.selectedColor, this.variantColor});
+
+  final HairStyle source;
+  final HomeHairColor? selectedColor;
+  final HairColor? variantColor;
+
+  String get id => source.id;
+  String get name => variantColor?.label ?? source.name;
+  String get description => source.description;
+  HomeHairLength get length => switch (source.length) {
+    HairLength.short => HomeHairLength.short,
+    HairLength.medium => HomeHairLength.shoulder,
+    HairLength.long => HomeHairLength.long,
+  };
+  Set<HomeHairType> get hairStyles => {
+    for (final type in source.types) HomeHairType.values.byName(type.name),
+  };
+
+  HairColor get displayColor =>
+      source.colorFor([?(variantColor ?? selectedColor?.sourceColor)]);
+
+  String get image {
+    final value = source.imageFor(displayColor)?.trim() ?? '';
+    final uri = Uri.tryParse(value);
+    if (uri == null ||
+        !uri.hasAuthority ||
+        uri.host.isEmpty ||
+        !{'http', 'https'}.contains(uri.scheme) ||
+        {'localhost', '127.0.0.1', '10.0.2.2', '[::1]'}.contains(uri.host)) {
+      return '';
+    }
+    return value;
+  }
+
+  Color get color => displayColor.color;
+  bool get trending => source.isTrending;
+  bool get colorTrending => source.isTrending && source.colors.length > 1;
+
+  bool hasColor(HomeHairColor color) {
+    final mapped = color.sourceColor;
+    return mapped != null &&
+        (variantColor == null || variantColor == mapped) &&
+        source.colors.contains(mapped);
+  }
+
+  HomeHairStyle withColor(HomeHairColor? color) =>
+      HomeHairStyle(source, selectedColor: color, variantColor: variantColor);
 }
 
-const _longImage = [
-  'https://media.comem.vn/uploads/2024/01/toc-xoan-dai-nu-32.webp',
-  'https://media.comem.vn/uploads/2024/01/toc-xoan-dai-nu-19.webp',
-  'https://media.comem.vn/uploads/2024/01/toc-xoan-dai-nu-14.webp',
-  'https://media.comem.vn/uploads/2024/01/toc-xoan-dai-nu-5.webp',
-];
+/// Approved grouping for Home's existing shade labels; no pink exists in Firestore.
+extension HomeHairColorMapping on HomeHairColor {
+  HairColor? get sourceColor => switch (this) {
+    HomeHairColor.milkTea ||
+    HomeHairColor.ashBrown ||
+    HomeHairColor.caramel ||
+    HomeHairColor.chocolate => HairColor.brown,
+    HomeHairColor.wine => HairColor.red,
+    HomeHairColor.naturalBlack => HairColor.black,
+    HomeHairColor.pastelPink => null,
+  };
+}
 
-final homeHairStyles = <HomeHairStyle>[
-  HomeHairStyle(
-    id: 'long-layer',
-    name: 'Tóc dài tỉa Layer',
-    length: HomeHairLength.long,
-    hairStyles: {HomeHairType.layer, HomeHairType.straight},
-    hairColor: HomeHairColor.milkTea,
-    description: 'Tầng tóc mềm tạo độ phồng tự nhiên, ôm gương mặt.',
-    image: _longImage[0],
-    color: Color(0xFFB78668),
-    trending: true,
-    colorTrending: true,
-  ),
-  HomeHairStyle(
-    id: 'long-loose-wave',
-    name: 'Tóc dài uốn sóng lơi',
-    length: HomeHairLength.long,
-    hairStyles: {HomeHairType.curly},
-    hairColor: HomeHairColor.caramel,
-    description: 'Sóng lơi nhẹ nhàng, nữ tính và dễ tạo kiểu.',
-    image: _longImage[1],
-    color: Color(0xFF8E654D),
-    trending: true,
-  ),
-  HomeHairStyle(
-    id: 'long-natural-straight',
-    name: 'Tóc dài thẳng tự nhiên',
-    length: HomeHairLength.long,
-    hairStyles: {HomeHairType.straight},
-    hairColor: HomeHairColor.naturalBlack,
-    description: 'Mái tóc suôn mượt tối giản, thanh lịch mỗi ngày.',
-    image: _longImage[2],
-    color: Color(0xFF4A3730),
-  ),
-  HomeHairStyle(
-    id: 'long-water-wave',
-    name: 'Tóc dài uốn xoăn sóng nước',
-    length: HomeHairLength.long,
-    hairStyles: {HomeHairType.curly},
-    hairColor: HomeHairColor.wine,
-    description: 'Lọn sóng rõ nét tạo vẻ bồng bềnh quyến rũ.',
-    image: _longImage[3],
-    color: Color(0xFF9B6B55),
-    trending: true,
-  ),
-  HomeHairStyle(
-    id: 'long-hippie',
-    name: 'Tóc dài uốn xù đũa (Hippie)',
-    length: HomeHairLength.long,
-    hairStyles: {HomeHairType.curly},
-    hairColor: HomeHairColor.chocolate,
-    description: 'Lọn xoăn nhỏ cá tính, tăng độ dày cho tóc.',
-    image: _longImage[0],
-    color: Color(0xFF765443),
-    colorTrending: true,
-  ),
-  HomeHairStyle(
-    id: 'long-c-curl',
-    name: 'Tóc dài cúp đuôi chữ C',
-    length: HomeHairLength.long,
-    hairStyles: {HomeHairType.curly},
-    hairColor: HomeHairColor.caramel,
-    description: 'Phần đuôi cụp ôm vai, gọn gàng và mềm mại.',
-    image: _longImage[1],
-    color: Color(0xFFBD8861),
-  ),
-  HomeHairStyle(
-    id: 'long-j-curl',
-    name: 'Tóc dài uốn chữ J',
-    length: HomeHairLength.long,
-    hairStyles: {HomeHairType.curly},
-    hairColor: HomeHairColor.naturalBlack,
-    description: 'Đuôi tóc cong nhẹ chữ J, giữ vẻ tự nhiên.',
-    image: _longImage[2],
-    color: Color(0xFF5B4034),
-  ),
-  HomeHairStyle(
-    id: 'long-big-curl',
-    name: 'Tóc dài uốn lọn to lãng mạn',
-    length: HomeHairLength.long,
-    hairStyles: {HomeHairType.curly},
-    hairColor: HomeHairColor.milkTea,
-    description: 'Lọn uốn lớn bồng bềnh cho phong cách lãng mạn.',
-    image: _longImage[3],
-    color: Color(0xFFA8775C),
-    trending: true,
-    colorTrending: true,
-  ),
-  HomeHairStyle(
-    id: 'long-wolf',
-    name: 'Tóc dài tỉa Wolf Cut',
-    length: HomeHairLength.long,
-    hairStyles: {HomeHairType.wolfCut, HomeHairType.layer},
-    hairColor: HomeHairColor.chocolate,
-    description: 'Tầng tóc phóng khoáng, trẻ trung và cá tính.',
-    image: _longImage[0],
-    color: Color(0xFF6D5144),
-    trending: true,
-  ),
-  HomeHairStyle(
-    id: 'long-blunt-bangs',
-    name: 'Tóc dài duỗi thẳng mái bằng',
-    length: HomeHairLength.long,
-    hairStyles: {HomeHairType.straight},
-    hairColor: HomeHairColor.naturalBlack,
-    description: 'Mái bằng nổi bật kết hợp tóc dài suôn thẳng.',
-    image: _longImage[1],
-    color: Color(0xFF45342F),
-  ),
-  HomeHairStyle(
-    id: 'long-korean-bangs',
-    name: 'Tóc dài mái bay Hàn Quốc',
-    length: HomeHairLength.long,
-    hairStyles: {HomeHairType.layer},
-    hairColor: HomeHairColor.caramel,
-    description: 'Mái bay ôm mặt, thanh thoát và dễ kết hợp.',
-    image: _longImage[2],
-    color: Color(0xFFAD7B5B),
-    trending: true,
-  ),
-  HomeHairStyle(
-    id: 'long-hime',
-    name: 'Tóc dài Hime Nhật Bản',
-    length: HomeHairLength.long,
-    hairStyles: {HomeHairType.straight},
-    hairColor: HomeHairColor.naturalBlack,
-    description: 'Tóc mai cắt bằng đặc trưng, tạo nét riêng.',
-    image: _longImage[3],
-    color: Color(0xFF3E302B),
-    colorTrending: true,
-  ),
-  HomeHairStyle(
-    id: 'short-layer',
-    name: 'Tóc ngắn tỉa Layer',
-    length: HomeHairLength.short,
-    hairStyles: {HomeHairType.layer},
-    hairColor: HomeHairColor.milkTea,
-    description: 'Layer ngắn nhẹ và bồng bềnh quanh gương mặt.',
-    image: _longImage[0],
-    color: Color(0xFFB98768),
-    trending: true,
-  ),
-  HomeHairStyle(
-    id: 'bob',
-    name: 'Tóc Bob',
-    length: HomeHairLength.short,
-    hairStyles: {HomeHairType.bob, HomeHairType.straight},
-    hairColor: HomeHairColor.wine,
-    description: 'Kiểu bob kinh điển gọn gàng, trẻ trung.',
-    image: _longImage[1],
-    color: Color(0xFF805B48),
-    trending: true,
-  ),
-  HomeHairStyle(
-    id: 'short-bob',
-    name: 'Bob ngắn',
-    length: HomeHairLength.short,
-    hairStyles: {HomeHairType.bob},
-    hairColor: HomeHairColor.ashBrown,
-    description: 'Độ dài ngắn cá tính, tôn đường nét gương mặt.',
-    image: _longImage[2],
-    color: Color(0xFF49362E),
-  ),
-  HomeHairStyle(
-    id: 'blunt-bob',
-    name: 'Bob bằng',
-    length: HomeHairLength.short,
-    hairStyles: {HomeHairType.bob, HomeHairType.straight},
-    hairColor: HomeHairColor.chocolate,
-    description: 'Đường cắt bằng sắc nét, hiện đại và tinh tế.',
-    image: _longImage[3],
-    color: Color(0xFF6B4D3E),
-    colorTrending: true,
-  ),
-  HomeHairStyle(
-    id: 'short-bob-style',
-    name: 'Short Bob',
-    length: HomeHairLength.short,
-    hairStyles: {HomeHairType.bob},
-    hairColor: HomeHairColor.caramel,
-    description: 'Bob ngắn ôm gáy, tiện chăm sóc mỗi ngày.',
-    image: _longImage[0],
-    color: Color(0xFFA77A60),
-    trending: true,
-  ),
-  HomeHairStyle(
-    id: 'short-c-curl',
-    name: 'Tóc ngắn ngang vai uốn cúp chữ C',
-    length: HomeHairLength.shoulder,
-    hairStyles: {HomeHairType.bob, HomeHairType.curly},
-    hairColor: HomeHairColor.chocolate,
-    description: 'Đuôi cúp chữ C ôm nhẹ, tạo vẻ dịu dàng.',
-    image: _longImage[1],
-    color: Color(0xFF76513E),
-  ),
-  HomeHairStyle(
-    id: 'pixie',
-    name: 'Tóc tém Pixie',
-    length: HomeHairLength.short,
-    hairStyles: {HomeHairType.pixie},
-    hairColor: HomeHairColor.ashBrown,
-    description: 'Tóc tém gọn, làm nổi bật nét cá tính.',
-    image: _longImage[2],
-    color: Color(0xFF4A3730),
-    trending: true,
-  ),
-  HomeHairStyle(
-    id: 'pixie-volume',
-    name: 'Pixie bồng bềnh',
-    length: HomeHairLength.short,
-    hairStyles: {HomeHairType.pixie},
-    hairColor: HomeHairColor.caramel,
-    description: 'Phần đỉnh tạo phồng cho vẻ ngoài năng động.',
-    image: _longImage[3],
-    color: Color(0xFF966D55),
-    colorTrending: true,
-  ),
-  HomeHairStyle(
-    id: 'pixie-bold',
-    name: 'Pixie cá tính',
-    length: HomeHairLength.short,
-    hairStyles: {HomeHairType.pixie},
-    hairColor: HomeHairColor.pastelPink,
-    description: 'Kiểu tém phá cách dành cho phong thái tự tin.',
-    image: _longImage[0],
-    color: Color(0xFF5A4033),
-    trending: true,
-  ),
-  HomeHairStyle(
-    id: 'lob',
-    name: 'Tóc Lob',
-    length: HomeHairLength.shoulder,
-    hairStyles: {HomeHairType.bob, HomeHairType.straight},
-    hairColor: HomeHairColor.caramel,
-    description: 'Bob dài qua cằm, cân bằng nét thanh lịch và trẻ trung.',
-    image: _longImage[1],
-    color: Color(0xFFB08161),
-  ),
-  HomeHairStyle(
-    id: 'long-bob',
-    name: 'Long Bob – tóc ngang vai',
-    length: HomeHairLength.shoulder,
-    hairStyles: {HomeHairType.bob, HomeHairType.straight},
-    hairColor: HomeHairColor.chocolate,
-    description: 'Độ dài ngang vai linh hoạt, dễ biến tấu.',
-    image: _longImage[2],
-    color: Color(0xFF694A3A),
-    trending: true,
-    colorTrending: true,
-  ),
-  HomeHairStyle(
-    id: 'short-loose-wave',
-    name: 'Tóc ngắn uốn sóng lơi Hàn Quốc',
-    length: HomeHairLength.short,
-    hairStyles: {HomeHairType.bob, HomeHairType.curly},
-    hairColor: HomeHairColor.caramel,
-    description: 'Sóng nhẹ phong cách Hàn Quốc, mềm mại tự nhiên.',
-    image: _longImage[3],
-    color: Color(0xFF966C50),
-    trending: true,
-  ),
-  HomeHairStyle(
-    id: 'short-hippie',
-    name: 'Tóc ngắn uốn xù đũa (Short Hippie)',
-    length: HomeHairLength.short,
-    hairStyles: {HomeHairType.curly},
-    hairColor: HomeHairColor.wine,
-    description: 'Lọn xoăn nhỏ vui tươi, tạo độ phồng nổi bật.',
-    image: _longImage[0],
-    color: Color(0xFF805A43),
-    colorTrending: true,
-  ),
-  HomeHairStyle(
-    id: 'flipped-ends',
-    name: 'Tóc ngắn uốn vểnh đuôi cá tính',
-    length: HomeHairLength.short,
-    hairStyles: {HomeHairType.bob, HomeHairType.curly},
-    hairColor: HomeHairColor.naturalBlack,
-    description: 'Đuôi tóc vểnh nhẹ, thêm nét tinh nghịch.',
-    image: _longImage[1],
-    color: Color(0xFF4D3930),
-  ),
-  HomeHairStyle(
-    id: 'mullet-layer',
-    name: 'Tóc ngắn tỉa Mullet / Mullet Layer',
-    length: HomeHairLength.short,
-    hairStyles: {HomeHairType.layer, HomeHairType.wolfCut},
-    hairColor: HomeHairColor.milkTea,
-    description: 'Tầng mullet phóng khoáng, nổi bật và hiện đại.',
-    image: _longImage[2],
-    color: Color(0xFFA77D61),
-    trending: true,
-  ),
-  HomeHairStyle(
-    id: 'micro-bangs',
-    name: 'Tóc ngắn mái ngố (Micro Bangs Bob)',
-    length: HomeHairLength.short,
-    hairStyles: {HomeHairType.bob, HomeHairType.straight},
-    hairColor: HomeHairColor.chocolate,
-    description: 'Mái ngắn cá tính phối cùng bob trẻ trung.',
-    image: _longImage[3],
-    color: Color(0xFF644839),
-  ),
-  HomeHairStyle(
-    id: 'short-air-bangs',
-    name: 'Tóc ngắn mái bay',
-    length: HomeHairLength.short,
-    hairStyles: {HomeHairType.layer},
-    hairColor: HomeHairColor.caramel,
-    description: 'Mái bay mềm mại giúp gương mặt thêm cân đối.',
-    image: _longImage[0],
-    color: Color(0xFFB77F5D),
-    colorTrending: true,
-  ),
-  HomeHairStyle(
-    id: 'short-hime',
-    name: 'Tóc ngắn Hime cắt bằng hai bên',
-    length: HomeHairLength.short,
-    hairStyles: {HomeHairType.bob, HomeHairType.straight},
-    hairColor: HomeHairColor.naturalBlack,
-    description: 'Tóc mai cắt bằng tạo điểm nhấn Hime hiện đại.',
-    image: _longImage[1],
-    color: Color(0xFF49342D),
-    trending: true,
-  ),
-  HomeHairStyle(
-    id: 'hush-cut',
-    name: 'Tóc dài Hush Cut',
-    length: HomeHairLength.long,
-    hairStyles: {HomeHairType.hushCut, HomeHairType.layer, HomeHairType.curly},
-    hairColor: HomeHairColor.ashBrown,
-    description:
-        'Tầng tóc ôm mặt nhẹ nhàng, tạo độ bay và vẻ mềm mại hiện đại.',
-    image: _longImage[2],
-    color: Color(0xFF8B786B),
-    trending: true,
-  ),
-];
+// Editorial banner artwork is independent of the product catalogue.
+const homeBannerImageUrl =
+    'https://media.comem.vn/uploads/2024/01/toc-xoan-dai-nu-32.webp';

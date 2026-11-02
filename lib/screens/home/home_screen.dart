@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/data/hair_style.dart';
+import '../../app/data/hair_style_api.dart' show loadHairStyles;
 import '../../app/theme.dart';
+import 'home_article_thumbnail.dart';
 import 'home_articles.dart';
+import 'home_care_detail_screen.dart';
+import 'home_care_treatments.dart';
 import 'home_data.dart';
 import 'home_detail_screens.dart';
-import 'home_filter_sheet.dart';
+import 'home_hair_repository.dart';
+import 'home_recommendations.dart';
 
 enum _HomeCategory { all, trending, color, short, long }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.loadStyles = loadHomeHairStyles});
+
+  final Future<List<HairStyle>> Function() loadStyles;
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -20,15 +28,18 @@ class _HomeScreenState extends State<HomeScreen> {
   final _carousel = ScrollController();
   final _articleCarousel = ScrollController();
   _HomeCategory _category = _HomeCategory.all;
-  HomeHairFilter _hairFilter = const HomeHairFilter();
   bool _showAll = false;
   bool _canLeft = false, _canRight = false;
   bool _articlesCanLeft = false,
       _articlesCanRight = false,
       _showAllArticles = false;
-  HomeHairStyle? _selectedStyle;
+  bool _openingStyle = false;
   HomeArticle? _selectedArticle;
   String _query = '';
+  List<HomeHairStyle> _styles = const [];
+  HomeRecommendations _recommendations = const HomeRecommendations();
+  bool _loadingStyles = true;
+  String? _stylesError;
 
   static const _categories = [
     ('Tất cả', _HomeCategory.all),
@@ -43,10 +54,40 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _carousel.addListener(_updateScrollButtons);
     _articleCarousel.addListener(_updateArticleScrollButtons);
+    _loadStyles();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateScrollButtons();
       _updateArticleScrollButtons();
     });
+  }
+
+  Future<void> _loadStyles() async {
+    setState(() {
+      _loadingStyles = true;
+      _stylesError = null;
+    });
+    try {
+      final styles = await widget.loadStyles();
+      if (!mounted) return;
+      final homeStyles = [for (final style in styles) HomeHairStyle(style)];
+      final recommendations = HomeRecommendations.pick(homeStyles);
+      setState(() {
+        _styles = homeStyles;
+        _recommendations = recommendations;
+        _loadingStyles = false;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _updateScrollButtons();
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _styles = const [];
+        _recommendations = const HomeRecommendations();
+        _loadingStyles = false;
+        _stylesError = 'Không thể tải mẫu tóc. Vui lòng thử lại.';
+      });
+    }
   }
 
   @override
@@ -57,38 +98,27 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  List<HomeHairStyle> get _filtered => homeHairStyles.where((style) {
+  List<HomeHairStyle> get _categoryStyles => switch (_category) {
+    _HomeCategory.trending => _recommendations.styles,
+    _HomeCategory.color => _recommendations.colors,
+    _ => _styles,
+  };
+
+  List<HomeHairStyle> get _filtered => _categoryStyles.where((style) {
     final categoryMatch = switch (_category) {
       _HomeCategory.all => true,
-      _HomeCategory.trending => style.trending,
-      _HomeCategory.color => style.colorTrending,
-      _HomeCategory.short => style.length != HomeHairLength.long,
+      _HomeCategory.trending => true,
+      _HomeCategory.color => true,
+      _HomeCategory.short => style.length == HomeHairLength.short,
       _HomeCategory.long => style.length == HomeHairLength.long,
     };
-    final matchesHairFilter = _hairFilter.matches(style);
     final q = _query.trim().toLowerCase();
     return categoryMatch &&
-        matchesHairFilter &&
         (q.isEmpty ||
             style.name.toLowerCase().contains(q) ||
+            style.source.name.toLowerCase().contains(q) ||
             style.description.toLowerCase().contains(q));
   }).toList();
-
-  Future<void> _openHairFilter() async {
-    final selected = await showHomeHairFilterSheet(
-      context,
-      initialFilter: _hairFilter,
-      styles: homeHairStyles,
-    );
-    if (!mounted || selected == null) return;
-    setState(() => _hairFilter = selected);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_carousel.hasClients) {
-        _carousel.jumpTo(0);
-      }
-      _updateScrollButtons();
-    });
-  }
 
   void _updateScrollButtons() {
     if (!mounted || !_carousel.hasClients || _showAll) return;
@@ -129,18 +159,49 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _showStyle(HomeHairStyle style) => setState(() {
-    _selectedArticle = null;
-    _selectedStyle = style;
-  });
+  Future<void> _showStyle(HomeHairStyle style) async {
+    if (_openingStyle) return;
+    _openingStyle = true;
+    try {
+      // The existing Detail resolves IDs from the cache filled by this loader.
+      final loaded = await loadHairStyles();
+      if (!mounted) return;
+      final product = loaded
+          ? hairStyles.where((item) => item.id == style.id).firstOrNull
+          : null;
+      if (product == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              loaded
+                  ? 'Không tìm thấy mẫu tóc này.'
+                  : 'Không thể tải chi tiết mẫu tóc. Vui lòng thử lại.',
+            ),
+          ),
+        );
+        return;
+      }
+      if (style.variantColor != null &&
+          !product.colors.contains(style.variantColor)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Màu tóc này hiện không còn khả dụng.')),
+        );
+        return;
+      }
+      final color = product.colorFor([style.displayColor]);
+      await context.push<void>(
+        '/styles/${Uri.encodeComponent(product.id)}?color=${color.name}',
+      );
+    } finally {
+      _openingStyle = false;
+    }
+  }
 
   void _showArticle(HomeArticle article) => setState(() {
-    _selectedStyle = null;
     _selectedArticle = article;
   });
 
   void _goBackToHome() => setState(() {
-    _selectedStyle = null;
     _selectedArticle = null;
   });
 
@@ -159,13 +220,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_selectedStyle case final style?) {
-      return HomeStyleDetailScreen(
-        style: style,
-        onBack: _goBackToHome,
-        onSelectStyle: _showStyle,
-      );
-    }
     if (_selectedArticle case final article?) {
       return HomeArticleDetailScreen(
         article: article,
@@ -338,7 +392,7 @@ class _HomeScreenState extends State<HomeScreen> {
     },
     borderRadius: BorderRadius.circular(24),
     child: Container(
-      height: 190,
+      constraints: const BoxConstraints(minHeight: 190),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
@@ -356,7 +410,7 @@ class _HomeScreenState extends State<HomeScreen> {
             bottom: 0,
             width: 150,
             child: Image.network(
-              homeHairStyles[0].image,
+              homeBannerImageUrl,
               fit: BoxFit.cover,
               errorBuilder: (c, e, s) => const SizedBox.shrink(),
             ),
@@ -379,6 +433,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(22),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
@@ -413,12 +468,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 12),
                 const Row(
                   children: [
-                    Text(
-                      'Khám phá xu hướng',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                    Flexible(
+                      child: Text(
+                        'Khám phá xu hướng',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     SizedBox(width: 5),
@@ -466,31 +523,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '${items.length} mẫu',
-                  style: const TextStyle(
-                    color: AppColors.teal,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  tooltip: 'Bộ lọc mẫu tóc',
-                  visualDensity: VisualDensity.compact,
-                  onPressed: _openHairFilter,
-                  icon: Icon(
-                    _hairFilter.isDefault
-                        ? Icons.tune_rounded
-                        : Icons.filter_alt_rounded,
-                    color: AppColors.teal,
-                    size: 21,
-                  ),
-                ),
-              ],
+            Text(
+              '${items.length} mẫu',
+              style: const TextStyle(
+                color: AppColors.teal,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -531,7 +570,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         const SizedBox(height: 14),
-        if (items.isEmpty)
+        if (_loadingStyles)
+          const Padding(
+            padding: EdgeInsets.all(28),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_stylesError != null)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(28),
@@ -539,13 +583,47 @@ class _HomeScreenState extends State<HomeScreen> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(18),
             ),
-            child: const Column(
+            child: Column(
               children: [
-                Icon(Icons.search_off, color: AppColors.textGrey, size: 32),
-                SizedBox(height: 8),
+                const Icon(
+                  Icons.cloud_off,
+                  color: AppColors.textGrey,
+                  size: 32,
+                ),
+                const SizedBox(height: 8),
                 Text(
-                  'Chưa tìm thấy kiểu tóc phù hợp',
-                  style: TextStyle(color: AppColors.textGrey),
+                  _stylesError!,
+                  style: const TextStyle(color: AppColors.textGrey),
+                  textAlign: TextAlign.center,
+                ),
+                TextButton(
+                  onPressed: _loadStyles,
+                  child: const Text('Thử lại'),
+                ),
+              ],
+            ),
+          )
+        else if (items.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Column(
+              children: [
+                const Icon(
+                  Icons.search_off,
+                  color: AppColors.textGrey,
+                  size: 32,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _styles.isEmpty
+                      ? 'Chưa có mẫu tóc'
+                      : 'Chưa tìm thấy kiểu tóc phù hợp',
+                  style: const TextStyle(color: AppColors.textGrey),
                 ),
               ],
             ),
@@ -671,6 +749,20 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   );
 
+  void _showCareTreatment(HomeCareTreatment treatment) {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (detailContext) => HomeCareDetailScreen(
+          treatment: treatment,
+          onBook: () {
+            Navigator.of(detailContext).pop();
+            context.go('/booking');
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _careSection(BuildContext context, bool wide) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -680,19 +772,33 @@ class _HomeScreenState extends State<HomeScreen> {
         spacing: 12,
         runSpacing: 12,
         children: [
-          _careCard(
-            Icons.spa_outlined,
-            'Phục hồi chuyên sâu',
-            'Nuôi dưỡng tóc khô xơ, lấy lại độ bóng khỏe.',
-            const Color(0xFFE5F0EB),
-            wide,
+          Semantics(
+            button: true,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _showCareTreatment(deepRepairTreatment),
+              child: _careCard(
+                Icons.spa_outlined,
+                'Phục hồi chuyên sâu',
+                'Nuôi dưỡng tóc khô xơ, lấy lại độ bóng khỏe.',
+                const Color(0xFFE5F0EB),
+                wide,
+              ),
+            ),
           ),
-          _careCard(
-            Icons.water_drop_outlined,
-            'Dưỡng tóc mềm mượt',
-            'Liệu trình chăm sóc nhẹ nhàng theo chất tóc.',
-            const Color(0xFFF7E8E8),
-            wide,
+          Semantics(
+            button: true,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _showCareTreatment(softMoistureTreatment),
+              child: _careCard(
+                Icons.water_drop_outlined,
+                'Dưỡng tóc mềm mượt',
+                'Liệu trình chăm sóc nhẹ nhàng theo chất tóc.',
+                const Color(0xFFF7E8E8),
+                wide,
+              ),
+            ),
           ),
         ],
       ),
@@ -839,52 +945,64 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         )
       else
-        SizedBox(
-          height: 230,
-          child: Stack(
-            children: [
-              ListView.separated(
-                controller: _articleCarousel,
-                scrollDirection: Axis.horizontal,
-                itemCount: homeArticles.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 12),
-                itemBuilder: (context, index) => SizedBox(
-                  width: wide ? 280 : 250,
-                  child: _articleCard(homeArticles[index]),
+        Stack(
+          children: [
+            SingleChildScrollView(
+              controller: _articleCarousel,
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 230),
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (
+                        var index = 0;
+                        index < homeArticles.length;
+                        index++
+                      ) ...[
+                        if (index > 0) const SizedBox(width: 12),
+                        SizedBox(
+                          width: wide ? 280 : 250,
+                          child: _articleCard(homeArticles[index]),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
-              if (_articlesCanLeft)
-                Positioned(
-                  left: 4,
-                  top: 84,
-                  child: _arrow(
-                    Icons.chevron_left,
-                    () => _articleCarousel.animateTo(
-                      (_articleCarousel.offset - 262)
-                          .clamp(0, _articleCarousel.position.maxScrollExtent)
-                          .toDouble(),
-                      duration: const Duration(milliseconds: 320),
-                      curve: Curves.easeOut,
-                    ),
+            ),
+            if (_articlesCanLeft)
+              Positioned(
+                left: 4,
+                top: 84,
+                child: _arrow(
+                  Icons.chevron_left,
+                  () => _articleCarousel.animateTo(
+                    (_articleCarousel.offset - 262)
+                        .clamp(0, _articleCarousel.position.maxScrollExtent)
+                        .toDouble(),
+                    duration: const Duration(milliseconds: 320),
+                    curve: Curves.easeOut,
                   ),
                 ),
-              if (_articlesCanRight)
-                Positioned(
-                  right: 4,
-                  top: 84,
-                  child: _arrow(
-                    Icons.chevron_right,
-                    () => _articleCarousel.animateTo(
-                      (_articleCarousel.offset + 262)
-                          .clamp(0, _articleCarousel.position.maxScrollExtent)
-                          .toDouble(),
-                      duration: const Duration(milliseconds: 320),
-                      curve: Curves.easeOut,
-                    ),
+              ),
+            if (_articlesCanRight)
+              Positioned(
+                right: 4,
+                top: 84,
+                child: _arrow(
+                  Icons.chevron_right,
+                  () => _articleCarousel.animateTo(
+                    (_articleCarousel.offset + 262)
+                        .clamp(0, _articleCarousel.position.maxScrollExtent)
+                        .toDouble(),
+                    duration: const Duration(milliseconds: 320),
+                    curve: Curves.easeOut,
                   ),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
     ],
   );
@@ -898,23 +1016,12 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AspectRatio(
               aspectRatio: expanded ? 1.35 : 1.85,
-              child: Image.network(
-                article.image,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  color: AppColors.tealLight,
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.spa_outlined,
-                    color: AppColors.teal,
-                    size: 38,
-                  ),
-                ),
-              ),
+              child: HomeArticleThumbnail(article: article),
             ),
             Padding(
               padding: const EdgeInsets.all(12),
