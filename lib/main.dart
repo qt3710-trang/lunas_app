@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
+import 'app/data/hair_ar_assets.dart';
 import 'app/router.dart';
 import 'app/theme.dart';
 import 'firebase_options.dart';
@@ -21,6 +22,9 @@ Future<void> main() async {
   //    (Firebase mặc định tự nhớ đăng nhập, nên mình chủ động đăng xuất.)
   //    Người dùng sẽ thấy Intro -> Đăng nhập / Đăng ký như bình thường.
   await AuthService.instance.logout();
+
+  // 3. Nhớ kiểu tóc thử AR gần nhất, mở lại app vẫn chọn sẵn kiểu đó.
+  await restoreSelectedArHair();
 
   runApp(const LunasApp());
 }

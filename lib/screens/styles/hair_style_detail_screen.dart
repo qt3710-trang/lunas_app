@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/data/booking_selection.dart';
 import '../../app/data/favorite_styles.dart';
+import '../../app/data/hair_ar_assets.dart';
 import '../../app/data/collection_styles.dart';
 import '../../app/data/hair_style.dart';
 import '../../app/theme.dart';
@@ -39,6 +40,26 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
     } else {
       context.go('/styles');
     }
+  }
+
+  /// Chọn sẵn đúng kiểu + màu đang xem rồi mở thẳng camera AR.
+  void _tryAr(HairStyle style) {
+    final hair = findArHair(style.id, _color.label);
+    if (hair != null) {
+      selectedArHair.value = hair;
+    } else {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              '${style.name} chưa có ảnh thử AR, mở kiểu bạn thử gần nhất nhé.',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    }
+    context.go('/ar/live');
   }
 
   void _saveToCollection(HairStyle style) {
@@ -338,7 +359,7 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => context.go('/ar'),
+                  onPressed: () => _tryAr(style),
                   icon: const Icon(Icons.center_focus_strong, size: 18),
                   label: const Text('Thử với AR'),
                   style: OutlinedButton.styleFrom(
