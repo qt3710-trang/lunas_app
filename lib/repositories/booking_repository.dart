@@ -15,6 +15,7 @@ class BookingRepository {
   static const _additionalServiceIds = [
     'goi-say-tao-kieu',
     'hap-phuc-hoi-toc',
+    'duong-toc-mem-muot',
   ];
 
   final FirebaseFirestore _firestore;
@@ -33,15 +34,12 @@ class BookingRepository {
     );
     final settingsDocument = await _getDocument(salonSettingsReference);
 
-    final serviceDocuments = await Future.wait<
-      DocumentSnapshot<Map<String, dynamic>>
-    >(
-      [
-        _getDocument(_firestore.collection('services').doc(_mainServiceId)),
-        for (final id in _additionalServiceIds)
-          _getDocument(_firestore.collection('additional_services').doc(id)),
-      ],
-    );
+    final serviceDocuments =
+        await Future.wait<DocumentSnapshot<Map<String, dynamic>>>([
+          _getDocument(_firestore.collection('services').doc(_mainServiceId)),
+          for (final id in _additionalServiceIds)
+            _getDocument(_firestore.collection('additional_services').doc(id)),
+        ]);
 
     final mainService = BookingService.fromDocument(serviceDocuments.first);
     if (!mainService.isActive) {
@@ -62,6 +60,106 @@ class BookingRepository {
       additionalServices: additionalServices,
       salonSettings: SalonSettings.fromDocument(settingsDocument),
     );
+  }
+
+  /// Saves a booking and returns its Firestore document ID.
+  Future<String> createBooking({
+    required BookingService mainService,
+    required List<BookingAdditionalService> additionalServices,
+    required SalonSettings salonSettings,
+    required DateTime date,
+    required String time,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw const BookingDataException('Bạn cần đăng nhập để đặt lịch.');
+    }
+    if (!salonSettings.isBookingEnabled) {
+      throw const BookingDataException(
+        'Salon hiện đang tạm ngưng nhận đặt lịch.',
+      );
+    }
+
+    final parts = time.split(':');
+    final hour = parts.length == 2 ? int.tryParse(parts[0]) : null;
+    final minute = parts.length == 2 ? int.tryParse(parts[1]) : null;
+    if (hour == null || minute == null) {
+      throw const BookingDataException('Giờ hẹn không hợp lệ.');
+    }
+
+    final startTime = DateTime(date.year, date.month, date.day, hour, minute);
+    if (!startTime.isAfter(DateTime.now())) {
+      throw const BookingDataException(
+        'Giờ hẹn đã qua. Vui lòng chọn giờ khác.',
+      );
+    }
+
+    final totalPrice =
+        mainService.price +
+        additionalServices.fold<int>(
+          0,
+          (total, service) => total + service.price,
+        );
+    final totalDuration =
+        mainService.durationMinutes +
+        additionalServices.fold<int>(
+          0,
+          (total, service) => total + service.durationMinutes,
+        );
+    if (!salonSettings.startTimesForDuration(totalDuration).contains(time)) {
+      throw const BookingDataException(
+        'Giờ hẹn không đủ thời lượng trước giờ đóng cửa.',
+      );
+    }
+
+    final reference = _firestore.collection('bookings').doc();
+    final bookingCode =
+        '#LUNAS${(DateTime.now().millisecondsSinceEpoch % 1000000).toString().padLeft(6, '0')}';
+    final data = <String, dynamic>{
+      'userId': user.uid,
+      'code': bookingCode,
+      'serviceName': mainService.name,
+      'serviceId': mainService.id,
+      'additionalServices': [
+        for (final service in additionalServices)
+          {'id': service.id, 'name': service.name, 'price': service.price},
+      ],
+      'salonName': salonSettings.salonName,
+      'salonAddress': '',
+      'startTime': Timestamp.fromDate(startTime),
+      'totalDurationMinutes': totalDuration,
+      'totalPrice': totalPrice,
+      'status': 'pending',
+      'stylistName': null,
+      'image': '',
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+
+    developer.log(
+      'Booking create started: path=${reference.path}',
+      name: 'lunas.booking.firestore',
+    );
+    try {
+      await reference.set(data);
+    } on FirebaseException catch (error) {
+      developer.log(
+        'Booking create failed: code=${error.code}',
+        name: 'lunas.booking.firestore',
+      );
+      if (error.code == 'permission-denied') {
+        throw const BookingDataException(
+          'Firestore từ chối quyền lưu lịch hẹn. Hãy kiểm tra security rules.',
+        );
+      }
+      throw const BookingDataException(
+        'Không thể lưu lịch hẹn. Hãy kiểm tra kết nối rồi thử lại.',
+      );
+    }
+    developer.log(
+      'Booking create completed: path=${reference.path}',
+      name: 'lunas.booking.firestore',
+    );
+    return reference.id;
   }
 
   Future<DocumentSnapshot<Map<String, dynamic>>> _getDocument(

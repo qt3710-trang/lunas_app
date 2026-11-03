@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -5,9 +7,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../models/booking_models.dart';
 import '../../repositories/booking_repository.dart';
+import '../../services/booking_notification_service.dart';
 
-/// Đặt lịch làm tóc. Catalog và giờ hoạt động được đọc từ Firestore;
-/// thao tác xác nhận hiện chưa ghi booking.
+/// Đặt lịch làm tóc; sau khi Firestore lưu booking thành công sẽ gửi local
+/// notification trên Android.
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
 
@@ -32,8 +35,8 @@ class _BookingScreenState extends State<BookingScreen> {
   DateTime _selectedDate = DateUtils.dateOnly(DateTime.now());
   String? _selectedTime;
   Set<String> _selectedExtras = {};
-  // ignore: prefer_final_fields
   bool _isConfirmed = false;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -143,9 +146,11 @@ class _BookingScreenState extends State<BookingScreen> {
     if (picked != null && mounted) setState(() => _selectedDate = picked);
   }
 
-  void _confirmBooking() {
-    final settings = _catalog?.salonSettings;
-    if (settings == null) return;
+  Future<void> _confirmBooking() async {
+    if (_isSaving || _isConfirmed) return;
+    final catalog = _catalog;
+    final settings = catalog?.salonSettings;
+    if (catalog == null || settings == null) return;
     if (!settings.isBookingEnabled) {
       _showLocalMessage(context, 'Salon hiện đang tạm ngưng nhận đặt lịch.');
       return;
@@ -154,10 +159,36 @@ class _BookingScreenState extends State<BookingScreen> {
       _showLocalMessage(context, 'Không có giờ phù hợp trước giờ đóng cửa.');
       return;
     }
-    _showLocalMessage(
-      context,
-      'Chức năng lưu lịch hẹn chưa được triển khai. Lịch này chưa được đặt.',
-    );
+
+    setState(() => _isSaving = true);
+    try {
+      final bookingId = await _repository.createBooking(
+        mainService: catalog.mainService,
+        additionalServices: _selectedServices,
+        salonSettings: settings,
+        date: _selectedDate,
+        time: _selectedTime!,
+      );
+
+      if (mounted) {
+        setState(() {
+          _isConfirmed = true;
+          _isSaving = false;
+        });
+      }
+      unawaited(
+        BookingNotificationService.instance.showBookingSuccess(
+          bookingId: bookingId,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      final message = error is BookingDataException
+          ? error.message
+          : 'Không thể lưu lịch hẹn. Hãy thử lại sau.';
+      _showLocalMessage(context, message);
+    }
   }
 
   @override
@@ -511,7 +542,6 @@ class _BookingForm extends StatelessWidget {
             ),
             const SizedBox(height: 8),
           ],
-          const _UnavailableServiceTile(),
           const SizedBox(height: 18),
           _BookingSummary(
             mainService: mainService,
@@ -977,66 +1007,6 @@ class _ExtraServiceTile extends StatelessWidget {
       ),
     );
   }
-}
-
-class _UnavailableServiceTile extends StatelessWidget {
-  const _UnavailableServiceTile();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
-    decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: .55),
-      borderRadius: BorderRadius.circular(15),
-      border: Border.all(
-        color: _BookingScreenState._rose.withValues(alpha: .65),
-      ),
-    ),
-    child: Row(
-      children: [
-        Container(
-          width: 43,
-          height: 43,
-          decoration: const BoxDecoration(
-            color: Color(0xFFFBEAE7),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.water_drop_outlined,
-            color: Color(0xFFC48483),
-            size: 21,
-          ),
-        ),
-        const SizedBox(width: 10),
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Nhuộm tóc',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-              ),
-              SizedBox(height: 3),
-              Text(
-                'Chưa có dữ liệu giá và thời lượng trên Firestore.',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: _BookingScreenState._muted,
-                  fontSize: 10,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        const Text(
-          'Chưa khả dụng',
-          style: TextStyle(color: _BookingScreenState._muted, fontSize: 10),
-        ),
-      ],
-    ),
-  );
 }
 
 class _BookingSummary extends StatelessWidget {
