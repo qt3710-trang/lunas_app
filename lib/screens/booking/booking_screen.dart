@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../app/data/booking_selection.dart';
 import '../../models/booking_models.dart';
 import '../../repositories/booking_repository.dart';
+import '../../widgets/lunas_decor.dart';
 
 /// Đặt lịch làm tóc. Mẫu tóc được mang sang từ tab Mẫu (bookingSelection);
 /// giờ hoạt động và dịch vụ thêm đọc từ Firestore; nút xác nhận ghi lịch
@@ -270,66 +271,62 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _paper,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFFFF8F5), _paper, Color(0xFFF7FAF9)],
+      backgroundColor: PastelColors.bg,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: PastelBackdrop()),
+          SafeArea(
+            bottom: false,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 260),
+              child: _isLoading
+                  ? const _BookingLoadingState(key: ValueKey('booking-loading'))
+                  : _loadError != null
+                  ? _BookingErrorState(
+                      key: const ValueKey('booking-error'),
+                      message: _loadErrorMessage(_loadError!),
+                      onRetry: _loadCatalog,
+                    )
+                  : _isConfirmed
+                  ? _SuccessContent(
+                      key: const ValueKey('booking-success'),
+                      bookingCode: _bookingCode,
+                      mainService: _mainService!,
+                      imageUrl: _choice?.imageUrl,
+                      selectedServices: _selectedServices,
+                      selectedDate: _selectedDate,
+                      selectedTime: _selectedTime!,
+                      totalDuration: _totalDuration,
+                      totalPrice: _totalPrice,
+                      salonSettings: _catalog!.salonSettings,
+                      onReset: _resetAfterSuccess,
+                    )
+                  : _choice == null
+                  ? const _NoStyleState(key: ValueKey('booking-no-style'))
+                  : _BookingForm(
+                      key: const ValueKey('booking-form'),
+                      mainService: _mainService!,
+                      imageUrl: _choice?.imageUrl,
+                      additionalServices: _catalog!.additionalServices,
+                      salonSettings: _catalog!.salonSettings,
+                      availableTimes: _timesFor(_selectedExtras, _selectedDate),
+                      selectedDate: _selectedDate,
+                      selectedTime: _selectedTime,
+                      selectedExtras: _selectedExtras,
+                      totalDuration: _totalDuration,
+                      totalPrice: _totalPrice,
+                      isSaving: _isSaving,
+                      onDateChanged: _changeDate,
+                      onChooseDate: _chooseDate,
+                      onTimeChanged: (time) =>
+                          setState(() => _selectedTime = time),
+                      onExtraChanged: _toggleExtra,
+                      onChangeStyle: () => context.go('/styles'),
+                      onConfirm: _confirmBooking,
+                    ),
+            ),
           ),
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 260),
-            child: _isLoading
-                ? const _BookingLoadingState(key: ValueKey('booking-loading'))
-                : _loadError != null
-                ? _BookingErrorState(
-                    key: const ValueKey('booking-error'),
-                    message: _loadErrorMessage(_loadError!),
-                    onRetry: _loadCatalog,
-                  )
-                : _isConfirmed
-                ? _SuccessContent(
-                    key: const ValueKey('booking-success'),
-                    bookingCode: _bookingCode,
-                    mainService: _mainService!,
-                    imageUrl: _choice?.imageUrl,
-                    selectedServices: _selectedServices,
-                    selectedDate: _selectedDate,
-                    selectedTime: _selectedTime!,
-                    totalDuration: _totalDuration,
-                    totalPrice: _totalPrice,
-                    salonSettings: _catalog!.salonSettings,
-                    onReset: _resetAfterSuccess,
-                  )
-                : _choice == null
-                ? const _NoStyleState(key: ValueKey('booking-no-style'))
-                : _BookingForm(
-                    key: const ValueKey('booking-form'),
-                    mainService: _mainService!,
-                    imageUrl: _choice?.imageUrl,
-                    additionalServices: _catalog!.additionalServices,
-                    salonSettings: _catalog!.salonSettings,
-                    availableTimes: _timesFor(_selectedExtras, _selectedDate),
-                    selectedDate: _selectedDate,
-                    selectedTime: _selectedTime,
-                    selectedExtras: _selectedExtras,
-                    totalDuration: _totalDuration,
-                    totalPrice: _totalPrice,
-                    isSaving: _isSaving,
-                    onDateChanged: _changeDate,
-                    onChooseDate: _chooseDate,
-                    onTimeChanged: (time) =>
-                        setState(() => _selectedTime = time),
-                    onExtraChanged: _toggleExtra,
-                    onChangeStyle: () => context.go('/styles'),
-                    onConfirm: _confirmBooking,
-                  ),
-          ),
-        ),
+        ],
       ),
     );
   }
@@ -695,8 +692,7 @@ class _BookingForm extends StatelessWidget {
           const SizedBox(height: 10),
           const _BookingNotice(
             icon: Icons.info_outline,
-            message:
-                'Giờ được tính theo thời lượng dịch vụ và giờ hoạt động; chưa kiểm tra lịch đã đặt.',
+            message: 'Giờ được tính theo thời lượng dịch vụ và giờ hoạt động; chưa kiểm tra lịch đã đặt.',
             compact: true,
           ),
           const SizedBox(height: 9),
@@ -707,8 +703,7 @@ class _BookingForm extends StatelessWidget {
               if (availableTimes.isEmpty) {
                 return const _BookingNotice(
                   icon: Icons.event_busy_outlined,
-                  message:
-                      'Không còn giờ bắt đầu nào phù hợp trong ngày này. Hãy thử chọn ngày khác.',
+                  message: 'Không còn giờ bắt đầu nào phù hợp trong ngày này. Hãy thử chọn ngày khác.',
                   compact: true,
                 );
               }
@@ -883,12 +878,7 @@ class _MainServiceCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _StyleImage(
-            imageUrl: imageUrl,
-            width: 92,
-            height: 104,
-            iconSize: 49,
-          ),
+          _StyleImage(imageUrl: imageUrl, width: 92, height: 104, iconSize: 49),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

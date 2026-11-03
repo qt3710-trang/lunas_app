@@ -1,9 +1,15 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/data/favorite_styles.dart';
 import '../../app/data/hair_style.dart';
 import '../../app/data/hair_style_api.dart' show loadHairStyles;
 import '../../app/theme.dart';
+import '../../widgets/lunas_decor.dart';
+import '../styles/gallery_widgets.dart' show HairStyleCard;
 import 'home_article_thumbnail.dart';
 import 'home_articles.dart';
 import 'home_care_detail_screen.dart';
@@ -13,7 +19,7 @@ import 'home_detail_screens.dart';
 import 'home_hair_repository.dart';
 import 'home_recommendations.dart';
 
-enum _HomeCategory { all, trending, color, short, long }
+enum _HomeCategory { all, trending, color, short, shoulder, long }
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.loadStyles = loadHomeHairStyles});
@@ -38,6 +44,9 @@ class _HomeScreenState extends State<HomeScreen> {
   String _query = '';
   List<HomeHairStyle> _styles = const [];
   HomeRecommendations _recommendations = const HomeRecommendations();
+  HomeHairStyle? _bannerStyle;
+  Timer? _bannerTimer;
+  final _random = Random();
   bool _loadingStyles = true;
   String? _stylesError;
 
@@ -46,6 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ('Kiểu tóc hot', _HomeCategory.trending),
     ('Màu tóc hot', _HomeCategory.color),
     ('Tóc ngắn', _HomeCategory.short),
+    ('Tóc ngang vai', _HomeCategory.shoulder),
     ('Tóc dài', _HomeCategory.long),
   ];
 
@@ -74,24 +84,54 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _styles = homeStyles;
         _recommendations = recommendations;
+        // Recommendations are shuffled once per catalogue load, so each
+        // Home opening can feature a different real hairstyle image.
+        _bannerStyle = recommendations.styles.firstOrNull;
         _loadingStyles = false;
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _updateScrollButtons();
       });
+      _scheduleBanner();
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _styles = const [];
         _recommendations = const HomeRecommendations();
+        _bannerStyle = null;
         _loadingStyles = false;
         _stylesError = 'Không thể tải mẫu tóc. Vui lòng thử lại.';
       });
     }
   }
 
+  /// Cứ 5-7 giây đổi ảnh banner sang một mẫu ngẫu nhiên trong trang Mẫu.
+  void _scheduleBanner() {
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer(
+      Duration(milliseconds: 5000 + _random.nextInt(2001)),
+      () {
+        if (!mounted) return;
+        final candidates = [
+          for (final style in _styles)
+            if (style.image.isNotEmpty && style.image != _bannerStyle?.image)
+              style,
+        ];
+        if (candidates.isNotEmpty) {
+          setState(() {
+            _bannerStyle = candidates[_random.nextInt(candidates.length)];
+          });
+          // Tải sẵn ảnh để lúc chuyển không bị nháy trắng.
+          precacheImage(NetworkImage(_bannerStyle!.image), context);
+        }
+        _scheduleBanner();
+      },
+    );
+  }
+
   @override
   void dispose() {
+    _bannerTimer?.cancel();
     _search.dispose();
     _carousel.dispose();
     _articleCarousel.dispose();
@@ -110,6 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _HomeCategory.trending => true,
       _HomeCategory.color => true,
       _HomeCategory.short => style.length == HomeHairLength.short,
+      _HomeCategory.shoulder => style.length == HomeHairLength.shoulder,
       _HomeCategory.long => style.length == HomeHairLength.long,
     };
     final q = _query.trim().toLowerCase();
@@ -229,266 +270,357 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     final items = _filtered;
     return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, box) {
-            final wide = box.maxWidth >= 700;
-            return Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1100),
-                child: CustomScrollView(
-                  slivers: [
-                    SliverPadding(
-                      padding: EdgeInsets.fromLTRB(
-                        wide ? 32 : 20,
-                        18,
-                        wide ? 32 : 20,
-                        0,
-                      ),
-                      sliver: SliverToBoxAdapter(child: _header(context)),
+      backgroundColor: PastelColors.bg,
+      body: Stack(
+        children: [
+          const Positioned.fill(
+            child: CustomPaint(painter: _BackdropPainter()),
+          ),
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, box) {
+                final wide = box.maxWidth >= 700;
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1100),
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverPadding(
+                          padding: EdgeInsets.fromLTRB(
+                            wide ? 32 : 20,
+                            18,
+                            wide ? 32 : 20,
+                            0,
+                          ),
+                          sliver: SliverToBoxAdapter(child: _header(context)),
+                        ),
+                        SliverPadding(
+                          padding: EdgeInsets.fromLTRB(
+                            wide ? 32 : 20,
+                            20,
+                            wide ? 32 : 20,
+                            0,
+                          ),
+                          sliver: SliverToBoxAdapter(child: _hero(context)),
+                        ),
+                        SliverPadding(
+                          padding: EdgeInsets.fromLTRB(
+                            wide ? 32 : 20,
+                            30,
+                            wide ? 32 : 20,
+                            0,
+                          ),
+                          sliver: SliverToBoxAdapter(
+                            child: _collection(context, items, wide),
+                          ),
+                        ),
+                        SliverPadding(
+                          padding: EdgeInsets.fromLTRB(
+                            wide ? 32 : 20,
+                            32,
+                            wide ? 32 : 20,
+                            0,
+                          ),
+                          sliver: SliverToBoxAdapter(
+                            child: _careSection(context, wide),
+                          ),
+                        ),
+                        SliverPadding(
+                          padding: EdgeInsets.fromLTRB(
+                            wide ? 32 : 20,
+                            24,
+                            wide ? 32 : 20,
+                            0,
+                          ),
+                          sliver: SliverToBoxAdapter(child: _inspiration()),
+                        ),
+                        SliverPadding(
+                          padding: EdgeInsets.fromLTRB(
+                            wide ? 32 : 20,
+                            30,
+                            wide ? 32 : 20,
+                            0,
+                          ),
+                          sliver: SliverToBoxAdapter(child: _news(wide)),
+                        ),
+                        SliverPadding(
+                          padding: EdgeInsets.fromLTRB(
+                            wide ? 32 : 20,
+                            24,
+                            wide ? 32 : 20,
+                            36,
+                          ),
+                          sliver: SliverToBoxAdapter(
+                            child: _bookingCta(context),
+                          ),
+                        ),
+                      ],
                     ),
-                    SliverPadding(
-                      padding: EdgeInsets.fromLTRB(
-                        wide ? 32 : 20,
-                        20,
-                        wide ? 32 : 20,
-                        0,
-                      ),
-                      sliver: SliverToBoxAdapter(child: _hero(context)),
-                    ),
-                    SliverPadding(
-                      padding: EdgeInsets.fromLTRB(
-                        wide ? 32 : 20,
-                        30,
-                        wide ? 32 : 20,
-                        0,
-                      ),
-                      sliver: SliverToBoxAdapter(
-                        child: _collection(context, items, wide),
-                      ),
-                    ),
-                    SliverPadding(
-                      padding: EdgeInsets.fromLTRB(
-                        wide ? 32 : 20,
-                        32,
-                        wide ? 32 : 20,
-                        0,
-                      ),
-                      sliver: SliverToBoxAdapter(
-                        child: _careSection(context, wide),
-                      ),
-                    ),
-                    SliverPadding(
-                      padding: EdgeInsets.fromLTRB(
-                        wide ? 32 : 20,
-                        24,
-                        wide ? 32 : 20,
-                        0,
-                      ),
-                      sliver: SliverToBoxAdapter(child: _inspiration()),
-                    ),
-                    SliverPadding(
-                      padding: EdgeInsets.fromLTRB(
-                        wide ? 32 : 20,
-                        30,
-                        wide ? 32 : 20,
-                        0,
-                      ),
-                      sliver: SliverToBoxAdapter(child: _news(wide)),
-                    ),
-                    SliverPadding(
-                      padding: EdgeInsets.fromLTRB(
-                        wide ? 32 : 20,
-                        24,
-                        wide ? 32 : 20,
-                        36,
-                      ),
-                      sliver: SliverToBoxAdapter(child: _bookingCta(context)),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _header(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color(0xFFF1D9D9),
-            ),
-            child: const Icon(Icons.face_3_outlined, color: AppColors.teal),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Chào bạn,',
-                  style: TextStyle(color: AppColors.textGrey, fontSize: 13),
-                ),
-                Text(
-                  'Hôm nay bạn muốn đổi kiểu tóc?',
-                  style: AppTheme.titleFont(size: 19),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Bạn đã cập nhật những xu hướng mới nhất.'),
-              ),
-            ),
-            icon: const Icon(
-              Icons.notifications_none_rounded,
-              color: AppColors.teal,
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 18),
-      TextField(
-        controller: _search,
-        onChanged: _searchChanged,
-        decoration: InputDecoration(
-          hintText: 'Tìm kiểu tóc bạn yêu thích',
-          prefixIcon: const Icon(Icons.search, color: AppColors.teal),
-          suffixIcon: _query.isEmpty
-              ? null
-              : IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () {
-                    _search.clear();
-                    _searchChanged('');
-                  },
-                ),
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(vertical: 13),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      ),
-    ],
-  );
-
-  Widget _hero(BuildContext context) => InkWell(
-    onTap: () {
-      _changeCategory(_HomeCategory.trending);
-    },
-    borderRadius: BorderRadius.circular(24),
-    child: Container(
-      constraints: const BoxConstraints(minHeight: 190),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF376F70), Color(0xFF83AFA5)],
-          begin: Alignment.centerLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -4,
-            top: 0,
-            bottom: 0,
-            width: 150,
-            child: Image.network(
-              homeBannerImageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (c, e, s) => const SizedBox.shrink(),
-            ),
-          ),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF376F70),
-                    const Color(0xFF376F70).withValues(alpha: .82),
-                    Colors.transparent,
-                  ],
-                  stops: const [0, .55, 1],
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 11,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: .18),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'LUNAS EDIT · TUẦN NÀY',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      letterSpacing: 1.1,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Hot nhất\ntuần này',
-                  style: AppTheme.titleFont(size: 27, color: Colors.white),
-                ),
-                const SizedBox(height: 7),
-                const Text(
-                  'Những kiểu tóc đang được yêu thích',
-                  style: TextStyle(color: Colors.white, fontSize: 12),
-                ),
-                const SizedBox(height: 12),
-                const Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        'Khám phá xu hướng',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+  Widget _header(BuildContext context) {
+    final hour = DateTime.now().hour;
+    final (greeting, icon, iconColor) = hour < 11
+        ? ('Chào buổi sáng,', Icons.wb_sunny_rounded, const Color(0xFFF2B35B))
+        : hour < 18
+        ? (
+            'Chào buổi chiều,',
+            Icons.wb_twilight_rounded,
+            const Color(0xFFEFA06B),
+          )
+        : ('Chào buổi tối,', Icons.nightlight_round, const Color(0xFF9DB4D9));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          greeting,
+                          style: AppTheme.titleFont(
+                            size: 24,
+                            color: AppColors.teal,
+                          ),
                         ),
                       ),
-                    ),
-                    SizedBox(width: 5),
-                    Icon(Icons.arrow_forward, color: Colors.white, size: 15),
-                  ],
+                      const SizedBox(width: 6),
+                      Icon(icon, color: iconColor, size: 24),
+                    ],
+                  ),
+                  Text(
+                    'hôm nay bạn thế nào?',
+                    style: AppTheme.titleFont(size: 24),
+                  ),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: () => context.go('/profile'),
+              child: Container(
+                width: 46,
+                height: 46,
+                padding: const EdgeInsets.all(2),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [PastelColors.blush, PastelColors.mint],
+                  ),
                 ),
-              ],
+                child: const CircleAvatar(
+                  backgroundColor: Color(0xFFFBEDEA),
+                  child: Icon(Icons.face_3_outlined, color: AppColors.teal),
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Bạn đã cập nhật những xu hướng mới nhất.'),
+                ),
+              ),
+              icon: const Badge(
+                smallSize: 8,
+                backgroundColor: AppColors.pink,
+                child: Icon(
+                  Icons.notifications_none_rounded,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x14263B3B),
+                blurRadius: 16,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          child: TextField(
+            controller: _search,
+            onChanged: _searchChanged,
+            decoration: InputDecoration(
+              hintText: 'Tìm kiểu tóc, màu tóc bạn yêu thích...',
+              hintStyle: const TextStyle(
+                color: AppColors.textGrey,
+                fontSize: 13,
+              ),
+              prefixIcon: const Icon(Icons.search, color: AppColors.textDark),
+              suffixIcon: _query.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () {
+                        _search.clear();
+                        _searchChanged('');
+                      },
+                    ),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(28),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(28),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(28),
+                borderSide: const BorderSide(color: AppColors.teal),
+              ),
             ),
           ),
-        ],
+        ),
+      ],
+    );
+  }
+
+  Widget _hero(BuildContext context) {
+    const heroColor = Color(0xFFF8E3DF);
+    return InkWell(
+      onTap: () => _changeCategory(_HomeCategory.trending),
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 200),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            colors: [heroColor, Color(0xFFFCEFEA)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x14D9A5A0),
+              blurRadius: 18,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: 170,
+              // Ảnh đổi mờ dần mỗi lần _bannerStyle thay đổi.
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 700),
+                child: Image.network(
+                  _bannerStyle?.image.isNotEmpty == true
+                      ? _bannerStyle!.image
+                      : homeBannerImageUrl,
+                  key: ValueKey(_bannerStyle?.image),
+                  fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
+                  width: double.infinity,
+                  height: double.infinity,
+                  errorBuilder: (c, e, s) => const SizedBox.shrink(),
+                ),
+              ),
+            ),
+            // Làm ảnh hòa dần vào nền hồng ở mép trái.
+            Positioned(
+              right: 100,
+              top: 0,
+              bottom: 0,
+              width: 70,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [heroColor, heroColor.withValues(alpha: 0)],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 125, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: .8),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'XU HƯỚNG TUẦN NÀY',
+                      style: TextStyle(
+                        color: AppColors.pink,
+                        fontSize: 9,
+                        letterSpacing: 1,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Hot nhất tuần này',
+                    style: AppTheme.titleFont(size: 22),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Khám phá diện mạo đang được yêu thích và tìm phong cách dành riêng cho bạn.',
+                    style: TextStyle(
+                      color: AppColors.textGrey,
+                      fontSize: 11.5,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // Nút canh trái thẳng hàng với chữ phía trên.
+                  FilledButton.icon(
+                    onPressed: () => context.go('/ar'),
+                    icon: const Icon(Icons.face_retouching_natural, size: 16),
+                    label: const Text('Thử ngay với AR'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.teal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      minimumSize: const Size(0, 38),
+                      elevation: 2,
+                      shadowColor: AppColors.teal.withValues(alpha: .4),
+                      textStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   Widget _collection(
     BuildContext context,
@@ -508,12 +640,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text(
                     'Bộ sưu tập tháng này',
-                    style: AppTheme.titleFont(size: 23),
+                    style: AppTheme.titleFont(size: 22),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     _query.isEmpty
-                        ? 'Tìm cảm hứng mới cho mái tóc của bạn'
+                        ? 'Cập nhật những phong cách đang được yêu thích.'
                         : '${items.length} kết quả phù hợp',
                     style: const TextStyle(
                       color: AppColors.textGrey,
@@ -550,11 +682,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     labelStyle: TextStyle(
                       fontSize: 12,
                       color: _category == category
-                          ? Colors.white
+                          ? AppColors.teal
                           : AppColors.textDark,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: _category == category
+                          ? FontWeight.w700
+                          : FontWeight.w500,
                     ),
-                    selectedColor: AppColors.teal,
+                    selectedColor: AppColors.tealLight,
                     backgroundColor: Colors.white,
                     side: BorderSide(
                       color: _category == category
@@ -644,11 +778,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   for (final item in items)
                     SizedBox(
                       width: width,
-                      child: _HairCard(
-                        style: item,
-                        onTap: () => _showStyle(item),
-                        compact: true,
-                      ),
+                      child: _hairCard(item, imageAspectRatio: .85),
                     ),
                 ],
               );
@@ -656,21 +786,18 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         else
           SizedBox(
-            height: 260,
+            height: wide ? 340 : 282,
             child: Stack(
               children: [
                 ListView.separated(
                   controller: _carousel,
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.only(bottom: 4),
+                  padding: const EdgeInsets.only(bottom: 14),
                   itemCount: items.length,
                   separatorBuilder: (_, _) => const SizedBox(width: 12),
                   itemBuilder: (context, index) => SizedBox(
                     width: cardWidth,
-                    child: _HairCard(
-                      style: items[index],
-                      onTap: () => _showStyle(items[index]),
-                    ),
+                    child: _hairCard(items[index]),
                   ),
                 ),
                 if (_canLeft)
@@ -734,6 +861,21 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Thẻ mẫu tóc dùng chung với trang Mẫu, tim đồng bộ với danh sách yêu thích.
+  Widget _hairCard(HomeHairStyle item, {double? imageAspectRatio}) =>
+      ListenableBuilder(
+        listenable: favoriteStyles,
+        builder: (context, _) => HairStyleCard(
+          style: item.source,
+          color: item.displayColor,
+          title: item.name,
+          imageAspectRatio: imageAspectRatio,
+          isFavorite: favoriteStyles.contains(item.id),
+          onFavorite: () => favoriteStyles.toggle(item.id),
+          onTap: () => _showStyle(item),
+        ),
+      );
+
   Widget _arrow(IconData icon, VoidCallback onTap) => Material(
     color: Colors.white,
     elevation: 3,
@@ -763,102 +905,147 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _careSection(BuildContext context, bool wide) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text('Chăm sóc tóc tại LUNAS', style: AppTheme.titleFont(size: 22)),
-      const SizedBox(height: 12),
-      Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: [
-          Semantics(
-            button: true,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => _showCareTreatment(deepRepairTreatment),
-              child: _careCard(
-                Icons.spa_outlined,
-                'Phục hồi chuyên sâu',
-                'Nuôi dưỡng tóc khô xơ, lấy lại độ bóng khỏe.',
-                const Color(0xFFE5F0EB),
-                wide,
-              ),
-            ),
-          ),
-          Semantics(
-            button: true,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => _showCareTreatment(softMoistureTreatment),
-              child: _careCard(
-                Icons.water_drop_outlined,
-                'Dưỡng tóc mềm mượt',
-                'Liệu trình chăm sóc nhẹ nhàng theo chất tóc.',
-                const Color(0xFFF7E8E8),
-                wide,
-              ),
-            ),
-          ),
-        ],
+  Widget _careSection(BuildContext context, bool wide) => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(22),
+      gradient: const LinearGradient(
+        colors: [Color(0xFFE3F0EC), Color(0xFFF2F8F5)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
       ),
-      const SizedBox(height: 12),
-      Align(
-        alignment: Alignment.centerRight,
-        child: TextButton.icon(
-          onPressed: () => context.go('/booking'),
-          icon: const Icon(Icons.calendar_month_outlined, size: 18),
-          label: const Text('Tư vấn & đặt lịch'),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .8),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.spa_outlined, color: AppColors.teal),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Liệu trình phục hồi & dưỡng tóc',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: Color(0xFF376F70),
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Nuôi dưỡng tóc từ bên trong, cho mái tóc chắc khỏe.',
+                    style: TextStyle(fontSize: 11, color: AppColors.textGrey),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-      ),
-    ],
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            _careCard(
+              deepRepairTreatment,
+              'Phục hồi chuyên sâu',
+              'Nuôi dưỡng tóc khô xơ, lấy lại độ bóng khỏe.',
+              wide,
+            ),
+            _careCard(
+              softMoistureTreatment,
+              'Dưỡng tóc mềm mượt',
+              'Liệu trình chăm sóc nhẹ nhàng theo chất tóc.',
+              wide,
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: () => context.go('/booking'),
+            icon: const Icon(Icons.calendar_month_outlined, size: 18),
+            label: const Text('Tư vấn & đặt lịch'),
+          ),
+        ),
+      ],
+    ),
   );
+
   Widget _careCard(
-    IconData icon,
+    HomeCareTreatment treatment,
     String title,
     String text,
-    Color color,
     bool wide,
   ) => SizedBox(
     width: wide ? 330 : null,
-    child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .75),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Icon(icon, color: AppColors.teal),
-          ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  text,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textGrey,
+    child: Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: () => _showCareTreatment(treatment),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  color: treatment.accent.withValues(alpha: .25),
+                  child: Image.network(
+                    treatment.coverImageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (c, e, s) =>
+                        const Icon(Icons.spa_outlined, color: AppColors.teal),
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      text,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textGrey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                color: AppColors.textGrey,
+                size: 20,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     ),
   );
@@ -1108,116 +1295,36 @@ class _HomeScreenState extends State<HomeScreen> {
   );
 }
 
-class _HairCard extends StatelessWidget {
-  const _HairCard({
-    required this.style,
-    required this.onTap,
-    this.compact = false,
-  });
-  final HomeHairStyle style;
-  final VoidCallback onTap;
-  final bool compact;
+/// Nền: vệt màu pastel mờ ở các góc.
+class _BackdropPainter extends CustomPainter {
+  const _BackdropPainter();
+
   @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.white,
-    borderRadius: BorderRadius.circular(18),
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0C263B3B),
-              blurRadius: 14,
-              offset: Offset(0, 5),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AspectRatio(
-              aspectRatio: compact ? 1.12 : .94,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Container(
-                    color: style.color.withValues(alpha: .2),
-                    child: Image.network(
-                      style.image,
-                      fit: BoxFit.cover,
-                      errorBuilder: (c, e, s) => Center(
-                        child: Icon(
-                          Icons.face_3_outlined,
-                          size: 58,
-                          color: style.color.withValues(alpha: .8),
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (style.trending)
-                    Positioned(
-                      left: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF9E7EB),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Text(
-                          'HOT',
-                          style: TextStyle(
-                            fontSize: 9,
-                            color: AppColors.pink,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(11, 10, 11, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    style.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      height: 1.25,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    switch (style.length) {
-                      HomeHairLength.short => 'TÓC NGẮN',
-                      HomeHairLength.shoulder => 'TÓC NGANG VAI',
-                      HomeHairLength.long => 'TÓC DÀI',
-                    },
-                    style: const TextStyle(
-                      fontSize: 9,
-                      letterSpacing: .7,
-                      color: AppColors.textGrey,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
+  void paint(Canvas canvas, Size size) {
+    void blob(Offset center, double radius, Color color) {
+      canvas.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..shader = RadialGradient(colors: [color, color.withValues(alpha: 0)])
+              .createShader(Rect.fromCircle(center: center, radius: radius)),
+      );
+    }
+
+    final w = size.width;
+    blob(Offset(w, 0), w * 0.6, PastelColors.blush.withValues(alpha: 0.55));
+    blob(
+      Offset(0, size.height * 0.08),
+      w * 0.45,
+      PastelColors.mint.withValues(alpha: 0.45),
+    );
+    blob(
+      Offset(w, size.height * 0.75),
+      w * 0.5,
+      PastelColors.peach.withValues(alpha: 0.35),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
