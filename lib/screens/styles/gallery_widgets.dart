@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../app/data/hair_style.dart';
 import '../../app/theme.dart';
@@ -81,7 +82,8 @@ class HairColorLabel extends StatelessWidget {
   }
 }
 
-/// Thẻ mẫu tóc trong lưới: ảnh, tên, màu tóc, nút yêu thích.
+/// Thẻ mẫu tóc trong lưới: ảnh bo góc (tim + nhãn "Xu hướng"),
+/// tên kiểu chữ có chân mềm mại, hàng chấm màu tóc có sẵn.
 class HairStyleCard extends StatelessWidget {
   const HairStyleCard({
     super.key,
@@ -90,6 +92,8 @@ class HairStyleCard extends StatelessWidget {
     required this.onFavorite,
     this.onTap,
     this.color,
+    this.title,
+    this.imageAspectRatio,
   });
 
   final HairStyle style;
@@ -100,54 +104,148 @@ class HairStyleCard extends StatelessWidget {
   /// Màu muốn hiện trên thẻ (ví dụ màu đang lọc). Bỏ trống thì dùng màu mặc định.
   final HairColor? color;
 
+  /// Tên hiện trên thẻ. Bỏ trống thì dùng tên mẫu.
+  final String? title;
+
+  /// Tỉ lệ ảnh cố định (rộng / cao), dùng khi thẻ không bị giới hạn chiều cao
+  /// (ví dụ xếp trong Wrap). Bỏ trống thì ảnh giãn hết phần còn lại của thẻ.
+  final double? imageAspectRatio;
+
   @override
   Widget build(BuildContext context) {
     final shown = color ?? style.color;
-    return Material(
-      color: AppColors.card,
-      borderRadius: BorderRadius.circular(16),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  HairThumb(color: shown, imageUrl: style.imageFor(shown)),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: _FavoriteButton(
-                      active: isFavorite,
-                      onTap: onFavorite,
+    final ratio = imageAspectRatio;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14263B3B),
+            blurRadius: 14,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Material(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(20),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(7),
+            child: Column(
+              mainAxisSize: ratio == null ? MainAxisSize.max : MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _sized(
+                  ratio,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(15),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        HairThumb(
+                          color: shown,
+                          imageUrl: style.imageFor(shown),
+                        ),
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: _FavoriteButton(
+                            active: isFavorite,
+                            onTap: onFavorite,
+                          ),
+                        ),
+                        if (style.isTrending)
+                          Positioned(
+                            left: 7,
+                            bottom: 7,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.teal.withValues(alpha: .9),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Text(
+                                'Xu hướng',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    style.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 8, 4, 3),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title ?? style.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.playfairDisplay(
+                          fontSize: 15,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          for (final c in style.colors.take(5))
+                            _ColorDot(color: c, selected: c == shown),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  HairColorLabel(color: shown),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Widget _sized(double? ratio, Widget child) => ratio == null
+      ? Expanded(child: child)
+      : AspectRatio(aspectRatio: ratio, child: child);
+}
+
+/// Chấm màu tóc trên thẻ; màu đang hiện có viền teal.
+class _ColorDot extends StatelessWidget {
+  const _ColorDot({required this.color, required this.selected});
+
+  final HairColor color;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: color.label,
+      child: Container(
+        width: 16,
+        height: 16,
+        margin: const EdgeInsets.only(right: 5),
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: selected ? AppColors.teal : Colors.transparent,
+            width: 1.2,
+          ),
+        ),
+        child: DecoratedBox(
+          decoration: BoxDecoration(color: color.color, shape: BoxShape.circle),
         ),
       ),
     );
@@ -165,16 +263,17 @@ class _FavoriteButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 32,
-        height: 32,
+        width: 30,
+        height: 30,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.9),
+          color: Colors.white.withValues(alpha: active ? 0.9 : 0.25),
           shape: BoxShape.circle,
         ),
         child: Icon(
           active ? Icons.favorite : Icons.favorite_border,
           size: 18,
-          color: active ? AppColors.pink : AppColors.textGrey,
+          color: active ? AppColors.pink : Colors.white,
+          shadows: const [Shadow(color: Color(0x40000000), blurRadius: 4)],
         ),
       ),
     );
@@ -197,7 +296,7 @@ class GalleryChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? AppColors.teal : Colors.white,
+      color: selected ? AppColors.tealLight : Colors.white,
       shape: StadiumBorder(
         side: BorderSide(color: selected ? AppColors.teal : AppColors.border),
       ),
@@ -210,7 +309,7 @@ class GalleryChip extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 13,
-              color: selected ? Colors.white : AppColors.textDark,
+              color: selected ? AppColors.teal : AppColors.textDark,
               fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),

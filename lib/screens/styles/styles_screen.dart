@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/data/favorite_styles.dart';
-import '../../app/data/collection_styles.dart';
 import '../../app/data/hair_style.dart';
 import '../../app/data/hair_style_api.dart';
 import '../../app/theme.dart';
+import '../../widgets/lunas_decor.dart';
 import '../shell/main_shell.dart' show tabReselected;
 import 'gallery_filter_sheet.dart';
 import 'gallery_widgets.dart';
@@ -30,7 +30,6 @@ class _StylesScreenState extends State<StylesScreen> {
   String _query = '';
   GalleryFilter _filter = const GalleryFilter();
   bool _favoritesOnly = false;
-  bool _collectionOnly = false;
 
   // Số mẫu đang hiện ở phần "Khám phá thêm", tăng dần khi cuộn xuống cuối.
   int _moreCount = _pageSize;
@@ -41,7 +40,6 @@ class _StylesScreenState extends State<StylesScreen> {
     super.initState();
     _scroll.addListener(_onScroll);
     favoriteStyles.addListener(_onFavoritesChanged);
-    collectionStyles.addListener(_onFavoritesChanged);
     tabReselected.addListener(_onTabReselected);
     loadHairStyles().then((ok) {
       if (ok && mounted) setState(() {});
@@ -51,7 +49,6 @@ class _StylesScreenState extends State<StylesScreen> {
   @override
   void dispose() {
     favoriteStyles.removeListener(_onFavoritesChanged);
-    collectionStyles.removeListener(_onFavoritesChanged);
     tabReselected.removeListener(_onTabReselected);
     _scroll.dispose();
     _searchController.dispose();
@@ -62,8 +59,7 @@ class _StylesScreenState extends State<StylesScreen> {
   bool get _isRefined =>
       _query.isNotEmpty ||
       !_filter.isEmpty ||
-      _favoritesOnly ||
-      _collectionOnly;
+      _favoritesOnly;
 
   List<HairStyle> get _results {
     final q = _query.toLowerCase();
@@ -71,7 +67,6 @@ class _StylesScreenState extends State<StylesScreen> {
       hairStyles.where((s) {
         return _filter.matches(s) &&
             (!_favoritesOnly || favoriteStyles.contains(s.id)) &&
-            (!_collectionOnly || collectionStyles.contains(s.id)) &&
             (q.isEmpty ||
                 s.name.toLowerCase().contains(q) ||
                 s.colors.any((c) => c.label.toLowerCase().contains(q)));
@@ -136,7 +131,6 @@ class _StylesScreenState extends State<StylesScreen> {
       _query = '';
       _filter = const GalleryFilter();
       _favoritesOnly = false;
-      _collectionOnly = false;
     });
   }
 
@@ -171,18 +165,27 @@ class _StylesScreenState extends State<StylesScreen> {
     final results = _results;
 
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: CustomScrollView(
-          controller: _scroll,
-          slivers: [
-            SliverToBoxAdapter(child: _buildHeader()),
-            SliverToBoxAdapter(child: _buildSearch()),
-            SliverToBoxAdapter(child: _buildCategories()),
-            if (_isRefined) ..._buildResults(results) else ..._buildBrowse(),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-          ],
-        ),
+      backgroundColor: PastelColors.bg,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: PastelBackdrop()),
+          SafeArea(
+            bottom: false,
+            child: CustomScrollView(
+              controller: _scroll,
+              slivers: [
+                SliverToBoxAdapter(child: _buildHeader()),
+                SliverToBoxAdapter(child: _buildSearch()),
+                SliverToBoxAdapter(child: _buildCategories()),
+                if (_isRefined)
+                  ..._buildResults(results)
+                else
+                  ..._buildBrowse(),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -226,27 +229,10 @@ class _StylesScreenState extends State<StylesScreen> {
             tooltip: 'Yêu thích',
             onPressed: () => setState(() {
               _favoritesOnly = !_favoritesOnly;
-              if (_favoritesOnly) _collectionOnly = false;
             }),
             icon: Icon(
               _favoritesOnly ? Icons.favorite : Icons.favorite_border,
               color: _favoritesOnly ? AppColors.pink : AppColors.textDark,
-            ),
-          ),
-          IconButton(
-            tooltip: 'Bộ sưu tập của tôi',
-            onPressed: () => setState(() {
-              _collectionOnly = !_collectionOnly;
-              if (_collectionOnly) _favoritesOnly = false;
-            }),
-            icon: Badge(
-              isLabelVisible: collectionStyles.count > 0,
-              backgroundColor: AppColors.teal,
-              label: Text('${collectionStyles.count}'),
-              child: Icon(
-                Icons.collections_bookmark_outlined,
-                color: _collectionOnly ? AppColors.teal : AppColors.textDark,
-              ),
             ),
           ),
         ],
@@ -257,24 +243,49 @@ class _StylesScreenState extends State<StylesScreen> {
   Widget _buildSearch() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      child: TextField(
-        controller: _searchController,
-        onChanged: (v) => setState(() => _query = v.trim()),
-        textInputAction: TextInputAction.search,
-        decoration: InputDecoration(
-          hintText: 'Tìm kiểu tóc, màu tóc bạn yêu thích...',
-          contentPadding: const EdgeInsets.symmetric(vertical: 12),
-          prefixIcon: const Icon(Icons.search, color: AppColors.textGrey),
-          suffixIcon: _query.isEmpty
-              ? null
-              : IconButton(
-                  icon: const Icon(Icons.close, size: 18),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() => _query = '');
-                  },
-                ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x14263B3B),
+              blurRadius: 16,
+              offset: Offset(0, 6),
+            ),
+          ],
         ),
+        child: _searchField(),
+      ),
+    );
+  }
+
+  Widget _searchField() {
+    const pill = OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(28)),
+      borderSide: BorderSide.none,
+    );
+    return TextField(
+      controller: _searchController,
+      onChanged: (v) => setState(() => _query = v.trim()),
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        hintText: 'Tìm kiểu tóc, màu tóc bạn yêu thích...',
+        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+        border: pill,
+        enabledBorder: pill,
+        focusedBorder: pill.copyWith(
+          borderSide: const BorderSide(color: AppColors.teal),
+        ),
+        prefixIcon: const Icon(Icons.search, color: AppColors.textDark),
+        suffixIcon: _query.isEmpty
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() => _query = '');
+                },
+              ),
       ),
     );
   }
@@ -373,9 +384,7 @@ class _StylesScreenState extends State<StylesScreen> {
         ),
       SliverToBoxAdapter(
         child: _SectionTitle(
-          title: _collectionOnly
-              ? 'Bộ sưu tập của tôi'
-              : (_favoritesOnly ? 'Yêu thích' : 'Kết quả phù hợp'),
+          title: _favoritesOnly ? 'Yêu thích' : 'Kết quả phù hợp',
           subtitle: '(${results.length} mẫu)',
           // Đang lọc thì nút Lọc đã nằm cuối hàng chip.
           trailing: _filter.isEmpty ? _FilterButton(onTap: _openFilter) : null,
@@ -429,10 +438,7 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       child: Row(
         children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-          ),
+          Text(title, style: AppTheme.titleFont(size: 20)),
           if (subtitle != null) ...[
             const SizedBox(width: 6),
             Text(
