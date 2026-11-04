@@ -427,21 +427,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            IconButton(
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Bạn đã cập nhật những xu hướng mới nhất.'),
-                ),
-              ),
-              icon: const Badge(
-                smallSize: 8,
-                backgroundColor: AppColors.pink,
-                child: Icon(
-                  Icons.notifications_none_rounded,
-                  color: AppColors.textDark,
-                ),
-              ),
-            ),
           ],
         ),
         const SizedBox(height: 18),
