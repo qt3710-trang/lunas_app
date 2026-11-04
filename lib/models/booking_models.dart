@@ -135,6 +135,7 @@ class SalonSettings {
     required this.slotIntervalMinutes,
     required this.timezone,
     required this.isBookingEnabled,
+    this.address = '',
   });
 
   final String salonName;
@@ -143,6 +144,9 @@ class SalonSettings {
   final int slotIntervalMinutes;
   final String timezone;
   final bool isBookingEnabled;
+
+  /// Địa chỉ salon (không bắt buộc; rỗng nếu chưa có trên Firestore).
+  final String address;
 
   factory SalonSettings.fromDocument(
     DocumentSnapshot<Map<String, dynamic>> document,
@@ -176,6 +180,7 @@ class SalonSettings {
       ),
       timezone: _requiredString(data, 'timezone', document.id),
       isBookingEnabled: _requiredBool(data, 'isBookingEnabled', document.id),
+      address: _optionalString(data, 'address'),
     );
   }
 

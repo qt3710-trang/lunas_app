@@ -174,7 +174,8 @@ class Appointment {
     );
   }
 
-  /// Bài 8: đọc từ collection 'bookings' (do phần Đặt lịch ghi vào).
+  /// Đọc từ collection 'bookings' (do phần Đặt lịch ghi vào).
+  /// startTime trên Firestore là Timestamp nên đọc bằng _readDateTime.
   factory Appointment.fromMap(String id, Map<String, dynamic> map) {
     DateTime parseDate(Object? raw) {
       if (raw is Timestamp) return raw.toDate();
@@ -228,6 +229,10 @@ class Appointment {
   }
 }
 
+/// Đổi giá trị thời gian đọc từ database thành DateTime.
+/// - Timestamp của Firestore -> .toDate()
+/// - Số mili giây (cách lưu cũ) -> DateTime.fromMillisecondsSinceEpoch
+/// - Không đọc được -> mốc 0 (không làm app bị sập).
 // ---------- Hàm định dạng ----------
 
 const _weekdays = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];

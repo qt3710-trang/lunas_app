@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Icon background sampled from the original logo. Splash matches AppColors.cream. -->
+    <color name="lunas_icon_background">#FDF9F5</color>
+    <color name="lunas_splash_background">#FBF6F2</color>
+</resources>

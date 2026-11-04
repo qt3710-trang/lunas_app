@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -180,7 +181,7 @@ class BookingRepository {
           {'id': service.id, 'name': service.name, 'price': service.price},
       ],
       'salonName': salonSettings.salonName,
-      'salonAddress': '',
+      'salonAddress': salonSettings.address,
       'startTime': Timestamp.fromDate(startTime),
       'totalDurationMinutes': totalDuration,
       'totalPrice': totalPrice,
@@ -203,7 +204,7 @@ class BookingRepository {
       name: 'lunas.booking.firestore',
     );
     try {
-      await reference.set(data);
+      await reference.set(data).timeout(const Duration(seconds: 15));
     } on FirebaseException catch (error) {
       developer.log(
         'Booking create failed: code=${error.code}',

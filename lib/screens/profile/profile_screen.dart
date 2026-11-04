@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/data/favorite_styles.dart';
 import '../../app/data/hair_style_api.dart';
 import '../../app/theme.dart';
+import '../../widgets/lunas_decor.dart';
 import 'ai_suggest_screen.dart'; // BÀI 7B
 import 'profile_models.dart';
 import 'profile_service.dart';
@@ -67,6 +68,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _profile = profile;
       _loading = false;
     });
+  }
+
+  /// Tải lại lịch hẹn từ Firestore (sau khi đặt lịch mới, hoặc khi kéo để làm mới).
+  Future<void> _refreshAppointments() async {
+    final list = await _service.getAppointments();
+    if (!mounted) return;
+    setState(() => _appointments = list);
   }
 
   void _toast(String message) {
@@ -226,22 +234,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: PastelColors.bg,
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     final profile = _profile!;
     return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildHeader(profile),
-            const SizedBox(height: 16),
-            _buildTabSwitcher(),
-            const SizedBox(height: 20),
-            if (_tab == 0) _buildSavedTab(profile) else _buildAppointmentsTab(),
-          ],
-        ),
+      backgroundColor: PastelColors.bg,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: BubbleBackdrop()),
+          SafeArea(
+            // Kéo xuống để tải lại lịch hẹn (ví dụ vừa đặt lịch ở tab Đặt lịch).
+            child: RefreshIndicator(
+              onRefresh: _refreshAppointments,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _buildHeader(profile),
+                  const SizedBox(height: 16),
+                  _buildTabSwitcher(),
+                  const SizedBox(height: 20),
+                  if (_tab == 0)
+                    _buildSavedTab(profile)
+                  else
+                    _buildAppointmentsTab(),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -257,7 +282,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12263B3B),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
       ),
       child: child,
     );
@@ -317,38 +348,79 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildHeader(UserProfile profile) {
-    return _card(
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 36,
-            backgroundColor: const Color(0xFFD9A5B3),
-            child: Text(
-              profile.initial,
-              style: AppTheme.titleFont(size: 30, color: Colors.white),
-            ),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 18, 8, 18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFF9E1DE), Color(0xFFFCEFE6), Color(0xFFE3F0EC)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: PastelColors.blush.withValues(alpha: .4),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(profile.name, style: AppTheme.titleFont(size: 24)),
-                const SizedBox(height: 4),
-                Text(
-                  _styleSummary(profile),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textGrey,
+        ],
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          const Positioned(right: 52, top: -4, child: Sparkle(size: 14)),
+          const Positioned(right: 80, bottom: -6, child: Sparkle(size: 9)),
+          Row(
+            children: [
+              // Ảnh đại diện: vòng viền chuyển màu hồng - bạc hà.
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFE2A19B), AppColors.teal],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                 ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () => _openSettings(profile),
-            tooltip: 'Cài đặt tài khoản',
-            icon: const Icon(Icons.settings_outlined),
+                child: CircleAvatar(
+                  radius: 34,
+                  backgroundColor: Colors.white,
+                  child: Text(
+                    profile.initial,
+                    style: AppTheme.titleFont(size: 30, color: AppColors.teal),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(profile.name, style: AppTheme.titleFont(size: 24)),
+                    const SizedBox(height: 4),
+                    Text(
+                      _styleSummary(profile),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textGrey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: () => _openSettings(profile),
+                tooltip: 'Cài đặt tài khoản',
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: .8),
+                ),
+                icon: const Icon(
+                  Icons.settings_outlined,
+                  color: AppColors.teal,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -359,8 +431,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6E3E8),
+        color: Colors.white.withValues(alpha: .75),
         borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white),
       ),
       child: Row(
         children: [
@@ -375,20 +448,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final selected = _tab == index;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _tab = index),
+        onTap: () {
+          setState(() => _tab = index);
+          // Mỗi lần bấm vào "Lịch hẹn" thì tải lại, để thấy lịch vừa đặt.
+          if (index == 1) _refreshAppointments();
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? Colors.white : Colors.transparent,
+            gradient: selected
+                ? const LinearGradient(
+                    colors: [Color(0xFF7DB3B4), AppColors.teal],
+                  )
+                : null,
             borderRadius: BorderRadius.circular(24),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: AppColors.teal.withValues(alpha: .3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
           ),
           child: Text(
             label,
             style: TextStyle(
               fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-              color: selected ? AppColors.textDark : AppColors.textGrey,
+              color: selected ? Colors.white : AppColors.textGrey,
             ),
           ),
         ),
@@ -437,10 +527,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildStyleTile(SavedStyle style) {
     return Container(
+      padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12263B3B),
+            blurRadius: 12,
+            offset: Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,12 +567,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           Padding(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.fromLTRB(4, 7, 4, 3),
             child: Text(
               style.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              style: AppTheme.titleFont(size: 13)
+                  .copyWith(fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -485,31 +583,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   /// BÀI 7B: nút lớn màu xanh "AI GỢI Ý KIỂU TÓC"
   Widget _buildAiButton() {
-    return Material(
-      color: AppColors.teal,
-      borderRadius: BorderRadius.circular(30),
-      child: InkWell(
-        onTap: _openAi,
-        borderRadius: BorderRadius.circular(30),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-          child: Row(
-            children: [
-              Icon(Icons.auto_awesome, color: Colors.white),
-              Expanded(
-                child: Text(
-                  'AI GỢI Ý KIỂU TÓC',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.5,
-                  ),
-                ),
+    return GradientButton(
+      expand: true,
+      onPressed: _openAi,
+      child: const Expanded(
+        child: Row(
+          children: [
+            Icon(Icons.auto_awesome),
+            Expanded(
+              child: Text(
+                'AI GỢI Ý KIỂU TÓC',
+                textAlign: TextAlign.center,
+                style: TextStyle(letterSpacing: 1.5),
               ),
-              Icon(Icons.arrow_forward, color: Colors.white),
-            ],
-          ),
+            ),
+            Icon(Icons.arrow_forward),
+          ],
         ),
       ),
     );
@@ -522,6 +611,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           _buildMenuRow(
             icon: Icons.face_outlined,
+            tint: PastelColors.blush,
             title: 'Dáng mặt và tông da',
             subtitle: _faceSkinSummary(profile),
             onTap: () async => _saveProfile(
@@ -532,6 +622,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Divider(height: 1),
           _buildMenuRow(
             icon: Icons.star_border,
+            tint: PastelColors.peach,
             title: 'Phong cách yêu thích',
             subtitle: _tagsSummary(profile),
             onTap: () async => _saveProfile(
@@ -542,6 +633,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Divider(height: 1),
           _buildMenuRow(
             icon: Icons.notifications_none,
+            tint: PastelColors.mint,
             title: 'Báo mẫu mới mỗi tuần',
             subtitle: 'Sáng thứ hai',
             trailing: Switch(
@@ -570,13 +662,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     String? subtitle,
     Widget? trailing,
     bool danger = false,
+    Color tint = const Color(0xFFF6E3E8),
   }) {
     final color = danger ? AppColors.pink : AppColors.textDark;
+    final iconColor = tint == PastelColors.mint
+        ? AppColors.teal
+        : AppColors.pink;
     return ListTile(
       onTap: onTap,
       leading: CircleAvatar(
-        backgroundColor: const Color(0xFFF6E3E8),
-        child: Icon(icon, color: AppColors.pink, size: 20),
+        backgroundColor: tint.withValues(alpha: .6),
+        child: Icon(icon, color: iconColor, size: 20),
       ),
       title: Text(
         title,

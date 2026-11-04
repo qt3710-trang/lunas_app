@@ -18,6 +18,8 @@ import 'profile_models.dart';
 ///  - Dáng mặt, tông da, phong cách...: lưu trên Firestore qua API
 ///    (GET /me, PUT /me), kèm một bản trên máy để dùng khi mất mạng.
 ///  - Mẫu đã lưu: chính là các mẫu bấm tim ở tab Mẫu (favoriteStyles).
+///  - Lịch hẹn: đọc từ collection 'bookings' trên Firestore
+///    (do tab Đặt lịch ghi vào), hủy lịch = đổi status thành 'cancelled'.
 ///  - AI gợi ý: chọn từ bộ sưu tập kiểu tóc thật, theo vibe (chưa phải AI thật).
 class ProfileService {
   ProfileService._();
@@ -233,7 +235,8 @@ class ProfileService {
     final snapshot = await FirebaseFirestore.instance
         .collection('bookings')
         .where('userId', isEqualTo: user.uid)
-        .get();
+        .get()
+        .timeout(const Duration(seconds: 15));
     final list = [
       for (final document in snapshot.docs)
         Appointment.fromMap(document.id, document.data()),
@@ -267,7 +270,7 @@ class ProfileService {
       throw StateError('Bạn cần đăng nhập để hủy lịch hẹn.');
     }
     final reference = FirebaseFirestore.instance.collection('bookings').doc(id);
-    final document = await reference.get();
+    final document = await reference.get().timeout(const Duration(seconds: 15));
     final data = document.data();
     if (!document.exists || data == null || data['userId'] != user.uid) {
       throw StateError('Không tìm thấy lịch hẹn của bạn.');
@@ -276,7 +279,9 @@ class ProfileService {
     if (!appointment.isUpcoming) {
       throw StateError('Chỉ có thể hủy lịch hẹn sắp tới chưa hoàn thành.');
     }
-    await reference.update({'status': 'cancelled'});
+    await reference
+        .update({'status': 'cancelled'})
+        .timeout(const Duration(seconds: 15));
   }
 
   // ---------- Đăng xuất ----------

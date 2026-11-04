@@ -3,9 +3,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/data/booking_draft_store.dart';
 import '../../app/data/favorite_styles.dart';
-import '../../app/data/collection_styles.dart';
+import '../../app/data/hair_ar_assets.dart';
 import '../../app/data/hair_style.dart';
 import '../../app/theme.dart';
+import '../../widgets/lunas_decor.dart';
 import 'gallery_widgets.dart';
 
 /// Chi tiết mẫu tóc: ảnh, mô tả, giá, chọn màu, mẫu tương tự.
@@ -41,113 +42,159 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
     }
   }
 
+  /// Chọn sẵn đúng kiểu + màu đang xem rồi mở thẳng camera AR.
+  void _tryAr(HairStyle style) {
+    final hair = findArHair(style.id, _color.label);
+    if (hair != null) {
+      selectedArHair.value = hair;
+    } else {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              '${style.name} chưa có ảnh thử AR, mở kiểu bạn thử gần nhất nhé.',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    }
+    context.go('/ar/live');
+  }
+
+  /// Ghi mẫu + màu đang xem rồi chuyển sang tab Đặt lịch.
+  void _book(HairStyle style) {
+    BookingDraftStore.instance.selectHairStyle(
+      style: style,
+      color: _color,
+      serviceId: bookingServiceIdForHairStyle(style),
+    );
+    context.go('/booking');
+  }
+
   void _saveToCollection(HairStyle style) {
-    final alreadySaved = collectionStyles.contains(style.id);
-    collectionStyles.add(style.id);
+    favoriteStyles.add(style.id);
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
-          content: Text(
-            alreadySaved
-                ? '${style.name} đã có trong Bộ sưu tập của tôi'
-                : 'Đã thêm ${style.name} vào Bộ sưu tập của tôi',
-          ),
+        const SnackBar(
+          content: Text('Đã lưu mẫu tóc vào bộ sưu tập.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
   }
 
+  /// Đặt nền pastel (giống trang AR) phía sau cả trang.
+  Widget _withBackdrop(Widget page) => Stack(
+    children: [
+      const Positioned.fill(child: PastelBackdrop()),
+      page,
+    ],
+  );
+
   @override
   Widget build(BuildContext context) {
     final style = _style;
     if (style == null) {
-      return Scaffold(
-        appBar: AppBar(leading: BackButton(onPressed: _back)),
-        body: const Center(child: Text('Không tìm thấy mẫu tóc này.')),
+      return _withBackdrop(
+        Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            scrolledUnderElevation: 0,
+            leading: BackButton(onPressed: _back),
+          ),
+          body: const Center(child: Text('Không tìm thấy mẫu tóc này.')),
+        ),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.chevron_left, size: 30),
-          onPressed: _back,
-        ),
-        centerTitle: true,
-        title: const Text(
-          'LUNAS HAIR STUDIO',
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.2,
+    return _withBackdrop(
+      Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.chevron_left, size: 30),
+            onPressed: _back,
           ),
-        ),
-        actions: [
-          ListenableBuilder(
-            listenable: favoriteStyles,
-            builder: (context, _) {
-              final saved = favoriteStyles.contains(style.id);
-              return IconButton(
-                tooltip: saved ? 'Bỏ lưu' : 'Lưu mẫu',
-                onPressed: () => favoriteStyles.toggle(style.id),
-                icon: Icon(
-                  saved ? Icons.favorite : Icons.favorite_border,
-                  color: saved ? AppColors.pink : AppColors.textDark,
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-        children: [
-          _buildMainImage(style),
-          const SizedBox(height: 16),
-          Text(style.name, style: AppTheme.titleFont(size: 26)),
-          const SizedBox(height: 2),
-          Text(
-            style.tagline,
-            style: const TextStyle(color: AppColors.pink, fontSize: 14),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            style.description,
-            style: const TextStyle(
-              fontSize: 13,
-              height: 1.5,
-              color: AppColors.textDark,
+          centerTitle: true,
+          title: const Text(
+            'LUNAS HAIR STUDIO',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.2,
             ),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [for (final t in style.tags) _Tag(t)],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _InfoBox(icon: Icons.schedule, text: style.duration),
+          actions: [
+            ListenableBuilder(
+              listenable: favoriteStyles,
+              builder: (context, _) {
+                final saved = favoriteStyles.contains(style.id);
+                return IconButton(
+                  tooltip: saved ? 'Bỏ lưu' : 'Lưu mẫu',
+                  onPressed: () => favoriteStyles.toggle(style.id),
+                  icon: Icon(
+                    saved ? Icons.favorite : Icons.favorite_border,
+                    color: saved ? AppColors.pink : AppColors.textDark,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+          children: [
+            _buildMainImage(style),
+            const SizedBox(height: 16),
+            Text(style.name, style: AppTheme.titleFont(size: 26)),
+            const SizedBox(height: 2),
+            Text(
+              style.tagline,
+              style: const TextStyle(color: AppColors.pink, fontSize: 14),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              style.description,
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: AppColors.textDark,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _InfoBox(icon: Icons.sell_outlined, text: style.price),
-              ),
-            ],
-          ),
-          const _Heading(
-            'Chọn màu tóc của bạn',
-            subtitle: 'Khám phá sắc màu phù hợp với phong cách bạn yêu thích.',
-          ),
-          _buildColorPicker(style),
-          const _Heading('Có thể bạn cũng thích'),
-          _buildSimilar(style),
-        ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [for (final t in style.tags) _Tag(t)],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: _InfoBox(icon: Icons.schedule, text: style.duration),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _InfoBox(icon: Icons.sell_outlined, text: style.price),
+                ),
+              ],
+            ),
+            const _Heading(
+              'Chọn màu tóc của bạn',
+              subtitle:
+                  'Khám phá sắc màu phù hợp với phong cách bạn yêu thích.',
+            ),
+            _buildColorPicker(style),
+            const _Heading('Có thể bạn cũng thích'),
+            _buildSimilar(style),
+          ],
+        ),
+        bottomNavigationBar: _buildActions(style),
       ),
-      bottomNavigationBar: _buildActions(style),
     );
   }
 
@@ -277,7 +324,7 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
     ].take(6).toList();
 
     return SizedBox(
-      height: 200,
+      height: 220,
       child: ListenableBuilder(
         listenable: favoriteStyles,
         builder: (context, _) => ListView.separated(
@@ -304,30 +351,23 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
   Widget _buildActions(HairStyle style) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-      decoration: const BoxDecoration(
-        color: AppColors.cream,
-        border: Border(top: BorderSide(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .6),
+        border: const Border(top: BorderSide(color: AppColors.border)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
             width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: () {
-                BookingDraftStore.instance.selectHairStyle(
-                  style: style,
-                  color: _color,
-                  serviceId: bookingServiceIdForHairStyle(style),
-                );
-                context.go('/booking');
-              },
-              icon: const Icon(Icons.calendar_month_outlined, size: 18),
-              label: const Text('Thêm vào đặt lịch'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.teal,
+            child: ElevatedButton.icon(
+              onPressed: () => _book(style),
+              icon: const Icon(Icons.calendar_month, size: 18),
+              label: const Text('Đặt lịch với mẫu này'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.pink,
                 foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(46),
+                minimumSize: const Size.fromHeight(48),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -339,7 +379,7 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => context.go('/ar'),
+                  onPressed: () => _tryAr(style),
                   icon: const Icon(Icons.center_focus_strong, size: 18),
                   label: const Text('Thử với AR'),
                   style: OutlinedButton.styleFrom(
@@ -354,18 +394,20 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: ElevatedButton.icon(
+                child: OutlinedButton.icon(
                   onPressed: () => _saveToCollection(style),
                   icon: const Icon(
                     Icons.collections_bookmark_outlined,
                     size: 18,
                   ),
                   label: const Text(
-                    'Thêm vào bộ sưu tập của tôi',
+                    'Lưu mẫu',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  style: ElevatedButton.styleFrom(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.pink,
+                    side: const BorderSide(color: AppColors.pink),
                     minimumSize: const Size.fromHeight(48),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
