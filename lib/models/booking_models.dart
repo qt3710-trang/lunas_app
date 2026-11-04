@@ -1,7 +1,26 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+enum BookingMode {
+  hairstyle('hairstyle'),
+  serviceOnly('service_only');
+
+  const BookingMode(this.firestoreValue);
+
+  final String firestoreValue;
+}
+
+abstract interface class BookingLineItem {
+  String get id;
+  String get name;
+  String get description;
+  int get price;
+  int get durationMinutes;
+  bool get isActive;
+  String get collectionName;
+}
+
 /// A salon service that can be selected as the main booking service.
-class BookingService {
+class BookingService implements BookingLineItem {
   const BookingService({
     required this.id,
     required this.name,
@@ -12,20 +31,31 @@ class BookingService {
     required this.isActive,
   });
 
+  @override
   final String id;
+  @override
   final String name;
+  @override
   final String description;
+  @override
   final int price;
+  @override
   final int durationMinutes;
   final String category;
+  @override
   final bool isActive;
+
+  @override
+  String get collectionName => 'services';
 
   factory BookingService.fromDocument(
     DocumentSnapshot<Map<String, dynamic>> document,
   ) {
     final data = document.data();
     if (!document.exists || data == null) {
-      throw BookingDataException('Không tìm thấy dịch vụ chính trên Firestore.');
+      throw BookingDataException(
+        'Không tìm thấy dịch vụ chính trên Firestore.',
+      );
     }
     return BookingService(
       id: document.id,
@@ -45,7 +75,7 @@ class BookingService {
 }
 
 /// An optional service that can be added to a booking.
-class BookingAdditionalService {
+class BookingAdditionalService implements BookingLineItem {
   const BookingAdditionalService({
     required this.id,
     required this.name,
@@ -55,12 +85,21 @@ class BookingAdditionalService {
     required this.isActive,
   });
 
+  @override
   final String id;
+  @override
   final String name;
+  @override
   final String description;
+  @override
   final int price;
+  @override
   final int durationMinutes;
+  @override
   final bool isActive;
+
+  @override
+  String get collectionName => 'additional_services';
 
   factory BookingAdditionalService.fromDocument(
     DocumentSnapshot<Map<String, dynamic>> document,
@@ -170,14 +209,30 @@ class SalonSettings {
 
 class BookingCatalog {
   BookingCatalog({
-    required this.mainService,
+    required List<BookingService> services,
     required List<BookingAdditionalService> additionalServices,
     required this.salonSettings,
-  }) : additionalServices = List.unmodifiable(additionalServices);
+  }) : services = List.unmodifiable(services),
+       additionalServices = List.unmodifiable(additionalServices);
 
-  final BookingService mainService;
+  final List<BookingService> services;
   final List<BookingAdditionalService> additionalServices;
   final SalonSettings salonSettings;
+
+  List<BookingLineItem> get selectableServices => [
+    ...services.where((service) => service.isActive),
+    ...additionalServices.where((service) => service.isActive),
+  ];
+
+  BookingService? serviceById(String? id) {
+    if (id == null) return null;
+    return services
+        .where((service) => service.id == id && service.isActive)
+        .firstOrNull;
+  }
+
+  BookingLineItem? selectableServiceById(String id) =>
+      selectableServices.where((service) => service.id == id).firstOrNull;
 }
 
 class BookingDataException implements Exception {
@@ -189,7 +244,11 @@ class BookingDataException implements Exception {
   String toString() => message;
 }
 
-String _requiredString(Map<String, dynamic> data, String field, String document) {
+String _requiredString(
+  Map<String, dynamic> data,
+  String field,
+  String document,
+) {
   final value = data[field];
   if (value is! String || value.trim().isEmpty) {
     throw BookingDataException('Trường $field của $document không hợp lệ.');

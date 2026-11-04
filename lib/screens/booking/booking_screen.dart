@@ -1,17 +1,19 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../app/data/booking_selection.dart';
+import '../../app/data/booking_draft_store.dart';
 import '../../models/booking_models.dart';
 import '../../repositories/booking_repository.dart';
+import '../../services/booking_notification_service.dart';
 import '../../widgets/lunas_decor.dart';
 
-/// Đặt lịch làm tóc. Mẫu tóc được mang sang từ tab Mẫu (bookingSelection);
-/// giờ hoạt động và dịch vụ thêm đọc từ Firestore; nút xác nhận ghi lịch
-/// hẹn vào collection 'bookings'.
+/// Đặt lịch làm tóc; sau khi Firestore lưu booking thành công sẽ gửi local
+/// notification trên Android.
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
 
@@ -29,113 +31,57 @@ class _BookingScreenState extends State<BookingScreen> {
   static const _paper = Color(0xFFFFFCFA);
 
   final _repository = BookingRepository();
+  final _draft = BookingDraftStore.instance;
   BookingCatalog? _catalog;
   Object? _loadError;
   bool _isLoading = true;
-
-  /// Mẫu tóc đang đặt (lấy từ tab Mẫu). Null nghĩa là chưa chọn.
-  BookingChoice? _choice;
-
-  DateTime _selectedDate = DateUtils.dateOnly(DateTime.now());
-  String? _selectedTime;
-  Set<String> _selectedExtras = {};
   bool _isConfirmed = false;
   bool _isSaving = false;
   String _bookingCode = '';
 
-  @override
-  void initState() {
-    super.initState();
-    _choice = bookingSelection.value;
-    bookingSelection.addListener(_onSelectionChanged);
-    _loadCatalog();
-  }
+  DateTime? get _selectedDate => _draft.selectedDate;
+  String? get _selectedTime => _draft.selectedTime;
+  Set<String> get _selectedServiceIds => _draft.selectedServiceIds;
+  BookingMode? get _mode => _draft.mode;
+  BookingService? get _hairstyleService =>
+      _catalog?.serviceById(_draft.hairServiceId);
 
-  @override
-  void dispose() {
-    bookingSelection.removeListener(_onSelectionChanged);
-    super.dispose();
-  }
+  int get _totalDuration => _selectedLineItems.fold<int>(
+    0,
+    (total, service) => total + service.durationMinutes,
+  );
 
-  /// Tab Mẫu vừa chọn (hoặc xóa) mẫu để đặt lịch.
-  void _onSelectionChanged() {
-    final next = bookingSelection.value;
-    if (!mounted) return;
-    if (next == null) {
-      // Đang hiện màn thành công thì giữ nguyên cho tới khi người dùng thoát.
-      if (_isConfirmed) return;
-      setState(() => _choice = null);
-      return;
-    }
-    // Chọn mẫu mới: bắt đầu một lịch mới.
-    setState(() {
-      _choice = next;
-      _isConfirmed = false;
-      _bookingCode = '';
-      _selectedExtras = {};
-      _selectedTime = null;
-      _selectedDate = DateUtils.dateOnly(DateTime.now());
-    });
-  }
+  int get _totalPrice => _selectedLineItems.fold<int>(
+    0,
+    (total, service) => total + service.price,
+  );
 
-  /// Dịch vụ chính được dựng từ mẫu tóc đã chọn.
-  BookingService? get _mainService {
-    final choice = _choice;
-    if (choice == null) return null;
-    return BookingService(
-      id: choice.style.id,
-      name: choice.style.name,
-      description: 'Màu ${choice.color.label} · ${choice.style.tagline}',
-      price: choice.price,
-      durationMinutes: choice.durationMinutes,
-      category: 'hair-style',
-      isActive: true,
-    );
-  }
-
-  int get _totalDuration {
-    final main = _mainService;
-    if (main == null) return 0;
-    return main.durationMinutes +
-        _selectedServices.fold<int>(
-          0,
-          (total, service) => total + service.durationMinutes,
-        );
-  }
-
-  int get _totalPrice {
-    final main = _mainService;
-    if (main == null) return 0;
-    return main.price +
-        _selectedServices.fold<int>(
-          0,
-          (total, service) => total + service.price,
-        );
-  }
-
-  List<BookingAdditionalService> get _selectedServices {
+  List<BookingLineItem> get _selectedLineItems {
     final catalog = _catalog;
     if (catalog == null) return const [];
-    return catalog.additionalServices
-        .where((service) => _selectedExtras.contains(service.id))
-        .toList(growable: false);
+    if (_mode == BookingMode.hairstyle) {
+      final mainService = _hairstyleService;
+      return [
+        ?mainService,
+        ...catalog.additionalServices.where(
+          (service) => _selectedServiceIds.contains(service.id),
+        ),
+      ];
+    }
+    if (_mode == BookingMode.serviceOnly) {
+      return catalog.selectableServices
+          .where((service) => _selectedServiceIds.contains(service.id))
+          .toList(growable: false);
+    }
+    return const [];
   }
 
-  /// Các giờ bắt đầu hợp lệ: đủ thời lượng trước giờ đóng cửa,
-  /// và nếu chọn hôm nay thì bỏ các giờ đã qua.
-  List<String> _timesFor(Set<String> extraIds, DateTime date) {
-    final catalog = _catalog;
-    final main = _mainService;
-    if (catalog == null || main == null) return const [];
-    final duration =
-        main.durationMinutes +
-        catalog.additionalServices
-            .where((service) => extraIds.contains(service.id))
-            .fold<int>(0, (total, service) => total + service.durationMinutes);
-    final all = catalog.salonSettings.startTimesForDuration(duration);
-    final now = DateTime.now();
-    if (!DateUtils.isSameDay(date, now)) return all;
-    return all
+  List<String> _startTimesFor(BookingCatalog catalog) {
+    final date = _selectedDate;
+    if (date == null || _selectedLineItems.isEmpty) return const [];
+    final starts = catalog.salonSettings.startTimesForDuration(_totalDuration);
+    if (!DateUtils.isSameDay(date, DateTime.now())) return starts;
+    return starts
         .where((time) {
           final parts = time.split(':');
           final start = DateTime(
@@ -145,9 +91,30 @@ class _BookingScreenState extends State<BookingScreen> {
             int.parse(parts[0]),
             int.parse(parts[1]),
           );
-          return start.isAfter(now);
+          return start.isAfter(DateTime.now());
         })
         .toList(growable: false);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _draft.addListener(_onDraftChanged);
+    _loadCatalog();
+  }
+
+  @override
+  void dispose() {
+    _draft.removeListener(_onDraftChanged);
+    super.dispose();
+  }
+
+  void _onDraftChanged() {
+    if (!mounted) return;
+    setState(() {
+      _isConfirmed = false;
+      _isSaving = false;
+    });
   }
 
   Future<void> _loadCatalog() async {
@@ -171,29 +138,22 @@ class _BookingScreenState extends State<BookingScreen> {
     }
   }
 
-  void _toggleExtra(String id) {
-    final nextExtras = Set<String>.of(_selectedExtras);
-    if (!nextExtras.add(id)) nextExtras.remove(id);
-    final times = _timesFor(nextExtras, _selectedDate);
-    setState(() {
-      _selectedExtras = nextExtras;
-      if (!times.contains(_selectedTime)) _selectedTime = null;
-    });
-  }
-
-  void _changeDate(DateTime date) {
-    final times = _timesFor(_selectedExtras, date);
-    setState(() {
-      _selectedDate = date;
-      if (!times.contains(_selectedTime)) _selectedTime = null;
-    });
+  void _toggleService(String id) {
+    _draft.toggleService(id);
+    final catalog = _catalog;
+    if (catalog != null && !_startTimesFor(catalog).contains(_selectedTime)) {
+      _draft.selectTime(null);
+    }
   }
 
   Future<void> _chooseDate() async {
     final now = DateUtils.dateOnly(DateTime.now());
+    final currentDate = _selectedDate;
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate.isBefore(now) ? now : _selectedDate,
+      initialDate: currentDate == null || currentDate.isBefore(now)
+          ? now
+          : currentDate,
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
       builder: (context, child) => Theme(
@@ -208,44 +168,80 @@ class _BookingScreenState extends State<BookingScreen> {
         child: child!,
       ),
     );
-    if (picked != null && mounted) _changeDate(picked);
+    if (picked != null && mounted) {
+      _draft.selectDate(picked);
+      final catalog = _catalog;
+      if (catalog != null && !_startTimesFor(catalog).contains(_selectedTime)) {
+        _draft.selectTime(null);
+      }
+    }
   }
 
   Future<void> _confirmBooking() async {
-    if (_isSaving) return; // đang lưu thì bỏ qua lần bấm thứ hai
+    if (_isSaving || _isConfirmed) return;
     final catalog = _catalog;
-    final choice = _choice;
-    final main = _mainService;
-    if (catalog == null || choice == null || main == null) return;
-    final settings = catalog.salonSettings;
+    final mode = _mode;
+    final settings = catalog?.salonSettings;
+    final date = _selectedDate;
+    final time = _selectedTime;
+    final services = _selectedLineItems;
+    if (catalog == null || settings == null || mode == null) return;
     if (!settings.isBookingEnabled) {
       _showLocalMessage(context, 'Salon hiện đang tạm ngưng nhận đặt lịch.');
       return;
     }
-    final time = _selectedTime;
-    if (time == null) {
-      _showLocalMessage(context, 'Bạn hãy chọn giờ hẹn trước nhé.');
+    if (services.isEmpty) {
+      _showLocalMessage(context, 'Hãy chọn ít nhất một dịch vụ hợp lệ.');
+      return;
+    }
+    if (date == null || time == null) {
+      _showLocalMessage(context, 'Hãy chọn ngày và giờ hẹn.');
+      return;
+    }
+    final styleService = _hairstyleService;
+    final styleId = _draft.hairStyleId;
+    if (mode == BookingMode.hairstyle &&
+        (styleId == null || styleService == null)) {
+      _showLocalMessage(
+        context,
+        'Mẫu này chưa được liên kết với dịch vụ Firestore đang hoạt động.',
+      );
+      return;
+    }
+    if (!_startTimesFor(catalog).contains(time)) {
+      _showLocalMessage(
+        context,
+        'Giờ hẹn không còn hợp lệ cho dịch vụ đã chọn.',
+      );
       return;
     }
 
     setState(() => _isSaving = true);
     try {
-      final code = await _repository.createBooking(
-        mainService: main,
-        additionalServices: _selectedServices,
+      final bookingId = await _repository.createBooking(
+        mode: mode,
+        hairstyleService: styleService,
+        selectedServices: services,
+        hairStyleId: styleId,
+        hairStyleName: _draft.hairStyleName,
+        hairStyleColor: _draft.hairStyleColor,
+        hairStyleImageUrl: _draft.hairStyleImageUrl,
         salonSettings: settings,
-        date: _selectedDate,
+        date: date,
         time: time,
-        image: choice.imageUrl ?? '',
       );
-      if (!mounted) return;
-      setState(() {
-        _bookingCode = code;
-        _isConfirmed = true;
-        _isSaving = false;
-      });
-      // Lịch đã đặt xong, bỏ mẫu đã chọn (màn thành công vẫn giữ bản sao).
-      bookingSelection.clear();
+      if (mounted) {
+        setState(() {
+          _bookingCode = bookingId;
+          _isConfirmed = true;
+          _isSaving = false;
+        });
+      }
+      unawaited(
+        BookingNotificationService.instance.showBookingSuccess(
+          bookingId: bookingId,
+        ),
+      );
     } catch (error) {
       if (!mounted) return;
       setState(() => _isSaving = false);
@@ -256,15 +252,12 @@ class _BookingScreenState extends State<BookingScreen> {
     }
   }
 
-  /// Thoát màn thành công, quay về trạng thái "chưa chọn mẫu".
-  void _resetAfterSuccess() {
+  void _startNewBooking() {
+    _draft.resetForNewBooking();
     setState(() {
       _isConfirmed = false;
-      _choice = null;
+      _isSaving = false;
       _bookingCode = '';
-      _selectedExtras = {};
-      _selectedTime = null;
-      _selectedDate = DateUtils.dateOnly(DateTime.now());
     });
   }
 
@@ -291,37 +284,58 @@ class _BookingScreenState extends State<BookingScreen> {
                   ? _SuccessContent(
                       key: const ValueKey('booking-success'),
                       bookingCode: _bookingCode,
-                      mainService: _mainService!,
-                      imageUrl: _choice?.imageUrl,
-                      selectedServices: _selectedServices,
-                      selectedDate: _selectedDate,
+                      mode: _mode!,
+                      services: _selectedLineItems,
+                      hairStyleName: _draft.hairStyleName,
+                      hairStyleColor: _draft.hairStyleColor,
+                      hairStyleColorValue: _draft.hairStyleColorValue,
+                      hairStyleImageUrl: _draft.hairStyleImageUrl,
+                      selectedDate: _selectedDate!,
                       selectedTime: _selectedTime!,
                       totalDuration: _totalDuration,
                       totalPrice: _totalPrice,
                       salonSettings: _catalog!.salonSettings,
-                      onReset: _resetAfterSuccess,
+                      onNewBooking: _startNewBooking,
                     )
-                  : _choice == null
-                  ? const _NoStyleState(key: ValueKey('booking-no-style'))
+                  : _mode == null
+                  ? _BookingEntryState(
+                      key: const ValueKey('booking-entry'),
+                      onExploreStyles: () => context.go('/styles'),
+                      onServiceOnly: _draft.startServiceOnly,
+                    )
                   : _BookingForm(
                       key: const ValueKey('booking-form'),
-                      mainService: _mainService!,
-                      imageUrl: _choice?.imageUrl,
-                      additionalServices: _catalog!.additionalServices,
+                      mode: _mode!,
+                      hairstyleService: _hairstyleService,
+                      hairStyleId: _draft.hairStyleId,
+                      hairStyleName: _draft.hairStyleName,
+                      hairStyleColor: _draft.hairStyleColor,
+                      hairStyleColorValue: _draft.hairStyleColorValue,
+                      hairStyleImageUrl: _draft.hairStyleImageUrl,
+                      selectableServices: _mode == BookingMode.hairstyle
+                          ? _catalog!.additionalServices
+                          : _catalog!.selectableServices,
                       salonSettings: _catalog!.salonSettings,
-                      availableTimes: _timesFor(_selectedExtras, _selectedDate),
+                      availableTimes: _startTimesFor(_catalog!),
                       selectedDate: _selectedDate,
                       selectedTime: _selectedTime,
-                      selectedExtras: _selectedExtras,
+                      selectedServiceIds: _selectedServiceIds,
+                      selectedServices: _selectedLineItems,
                       totalDuration: _totalDuration,
                       totalPrice: _totalPrice,
                       isSaving: _isSaving,
-                      onDateChanged: _changeDate,
+                      onDateChanged: (date) {
+                        _draft.selectDate(date);
+                        if (!_startTimesFor(_catalog!)
+                            .contains(_selectedTime)) {
+                          _draft.selectTime(null);
+                        }
+                      },
                       onChooseDate: _chooseDate,
-                      onTimeChanged: (time) =>
-                          setState(() => _selectedTime = time),
-                      onExtraChanged: _toggleExtra,
-                      onChangeStyle: () => context.go('/styles'),
+                      onTimeChanged: _draft.selectTime,
+                      onServiceChanged: _toggleService,
+                      onChangeHairstyle: () => context.go('/styles'),
+                      onSwitchToServices: _draft.startServiceOnly,
                       onConfirm: _confirmBooking,
                     ),
             ),
@@ -417,73 +431,6 @@ class _BookingErrorState extends StatelessWidget {
   );
 }
 
-/// Hiện khi chưa chọn mẫu tóc nào từ tab Mẫu.
-class _NoStyleState extends StatelessWidget {
-  const _NoStyleState({super.key});
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(20, 10, 20, 26),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _PageHeading(
-          title: 'Đặt lịch làm tóc',
-          subtitle: 'Chọn kiểu tóc bạn thích, LUNAS sẽ lo phần còn lại.',
-        ),
-        Expanded(
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.content_cut,
-                  size: 46,
-                  color: _BookingScreenState._muted,
-                ),
-                const SizedBox(height: 14),
-                const Text(
-                  'Bạn chưa chọn kiểu tóc',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _BookingScreenState._ink,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 17,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Hãy chọn một mẫu ở tab Mẫu, rồi bấm "Đặt lịch với mẫu này" để tiếp tục.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _BookingScreenState._muted,
-                    height: 1.4,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                ElevatedButton.icon(
-                  onPressed: () => context.go('/styles'),
-                  icon: const Icon(Icons.grid_view_rounded, size: 18),
-                  label: const Text('Chọn mẫu'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _BookingScreenState._teal,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(160, 48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
 class _BookingNotice extends StatelessWidget {
   const _BookingNotice({
     required this.icon,
@@ -526,95 +473,140 @@ class _BookingNotice extends StatelessWidget {
   );
 }
 
-/// Ảnh mẫu tóc; không có ảnh hoặc tải lỗi thì hiện biểu tượng.
-class _StyleImage extends StatelessWidget {
-  const _StyleImage({
-    required this.imageUrl,
-    required this.width,
-    required this.height,
-    required this.iconSize,
+class _BookingEntryState extends StatelessWidget {
+  const _BookingEntryState({
+    super.key,
+    required this.onExploreStyles,
+    required this.onServiceOnly,
   });
 
-  final String? imageUrl;
-  final double width;
-  final double height;
-  final double iconSize;
+  final VoidCallback onExploreStyles;
+  final VoidCallback onServiceOnly;
 
   @override
-  Widget build(BuildContext context) {
-    final fallback = Icon(
-      Icons.face_3_outlined,
-      size: iconSize,
-      color: const Color(0xFFAA827E),
-    );
-    final url = imageUrl;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(13),
-      child: Container(
-        width: width,
-        height: height,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFF3DCD5), Color(0xFFE9E7E1)],
+  Widget build(BuildContext context) => Center(
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.calendar_month_outlined,
+            size: 48,
+            color: _BookingScreenState._teal,
           ),
-        ),
-        child: (url == null || url.isEmpty)
-            ? fallback
-            : Image.network(
-                url,
-                width: width,
-                height: height,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => fallback,
+          const SizedBox(height: 14),
+          Text(
+            'Bắt đầu đặt lịch',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'serif',
+              color: _BookingScreenState._ink,
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 7),
+          const Text(
+            'Chọn một mẫu tóc yêu thích hoặc đặt lịch với dịch vụ salon.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: _BookingScreenState._muted, height: 1.4),
+          ),
+          const SizedBox(height: 22),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onExploreStyles,
+              icon: const Icon(Icons.style_outlined),
+              label: const Text('Khám phá mẫu tóc'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _BookingScreenState._teal,
+                minimumSize: const Size.fromHeight(52),
+                side: const BorderSide(color: _BookingScreenState._teal),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
+            ),
+          ),
+          const SizedBox(height: 11),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: onServiceOnly,
+              icon: const Icon(Icons.spa_outlined),
+              label: const Text('Chỉ đặt dịch vụ'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _BookingScreenState._teal,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
 }
 
 class _BookingForm extends StatelessWidget {
   const _BookingForm({
     super.key,
-    required this.mainService,
-    required this.imageUrl,
-    required this.additionalServices,
+    required this.mode,
+    required this.hairstyleService,
+    required this.hairStyleId,
+    required this.hairStyleName,
+    required this.hairStyleColor,
+    required this.hairStyleColorValue,
+    required this.hairStyleImageUrl,
+    required this.selectableServices,
     required this.salonSettings,
     required this.availableTimes,
     required this.selectedDate,
     required this.selectedTime,
-    required this.selectedExtras,
+    required this.selectedServiceIds,
+    required this.selectedServices,
     required this.totalDuration,
     required this.totalPrice,
     required this.isSaving,
     required this.onDateChanged,
     required this.onChooseDate,
     required this.onTimeChanged,
-    required this.onExtraChanged,
-    required this.onChangeStyle,
+    required this.onServiceChanged,
+    required this.onChangeHairstyle,
+    required this.onSwitchToServices,
     required this.onConfirm,
   });
 
   static const _muted = _BookingScreenState._muted;
   static const _teal = _BookingScreenState._teal;
 
-  final BookingService mainService;
-  final String? imageUrl;
-  final List<BookingAdditionalService> additionalServices;
+  final BookingMode mode;
+  final BookingService? hairstyleService;
+  final String? hairStyleId;
+  final String? hairStyleName;
+  final String? hairStyleColor;
+  final int? hairStyleColorValue;
+  final String? hairStyleImageUrl;
+  final List<BookingLineItem> selectableServices;
   final SalonSettings salonSettings;
   final List<String> availableTimes;
-  final DateTime selectedDate;
+  final DateTime? selectedDate;
   final String? selectedTime;
-  final Set<String> selectedExtras;
+  final Set<String> selectedServiceIds;
+  final List<BookingLineItem> selectedServices;
   final int totalDuration;
   final int totalPrice;
   final bool isSaving;
   final ValueChanged<DateTime> onDateChanged;
   final VoidCallback onChooseDate;
   final ValueChanged<String> onTimeChanged;
-  final ValueChanged<String> onExtraChanged;
-  final VoidCallback onChangeStyle;
+  final ValueChanged<String> onServiceChanged;
+  final VoidCallback onChangeHairstyle;
+  final VoidCallback onSwitchToServices;
   final VoidCallback onConfirm;
 
   @override
@@ -630,10 +622,11 @@ class _BookingForm extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _PageHeading(
+          _PageHeading(
             title: 'Đặt lịch làm tóc',
-            subtitle:
-                'Chọn thời gian phù hợp để LUNAS chăm sóc mái tóc của bạn.',
+            subtitle: mode == BookingMode.hairstyle
+                ? 'Đặt lịch theo mẫu tóc và chọn thêm dịch vụ nếu cần.'
+                : 'Chọn một hoặc nhiều dịch vụ salon phù hợp với bạn.',
           ),
           if (!salonSettings.isBookingEnabled) ...[
             const SizedBox(height: 14),
@@ -642,13 +635,72 @@ class _BookingForm extends StatelessWidget {
               message: 'Salon hiện đang tạm ngưng nhận đặt lịch.',
             ),
           ],
-          const SizedBox(height: 18),
-          _MainServiceCard(
-            service: mainService,
-            imageUrl: imageUrl,
-            onChange: onChangeStyle,
+          if (mode == BookingMode.hairstyle) ...[
+            const SizedBox(height: 18),
+            if (hairStyleId != null && hairStyleName != null)
+              _HairStyleSelectionCard(
+                name: hairStyleName!,
+                color: hairStyleColor,
+                colorValue: hairStyleColorValue,
+                imageUrl: hairStyleImageUrl,
+                onChange: onChangeHairstyle,
+              ),
+            if (hairstyleService != null) ...[
+              const SizedBox(height: 10),
+              _MainServiceCard(
+                service: hairstyleService!,
+                imageUrl: hairStyleImageUrl,
+                onChange: onChangeHairstyle,
+              ),
+            ] else ...[
+              const SizedBox(height: 10),
+              const _BookingNotice(
+                icon: Icons.info_outline,
+                message: 'Mẫu tóc này chưa có dịch vụ salon đang hoạt động được liên kết. Hãy đổi mẫu hoặc chuyển sang đặt dịch vụ.',
+              ),
+            ],
+            const SizedBox(height: 9),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: onSwitchToServices,
+                child: const Text('Chỉ đặt dịch vụ'),
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 18),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: onChangeHairstyle,
+                icon: const Icon(Icons.style_outlined, size: 17),
+                label: const Text('Chọn mẫu tóc'),
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          _SectionHeading(
+            icon: Icons.add_circle_outline,
+            title: mode == BookingMode.hairstyle
+                ? 'Dịch vụ bổ sung'
+                : 'Chọn dịch vụ salon',
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 10),
+          if (selectableServices.isEmpty)
+            const _BookingNotice(
+              icon: Icons.info_outline,
+              message: 'Hiện không có dịch vụ đang hoạt động để chọn.',
+            )
+          else
+            for (final service in selectableServices) ...[
+              _ExtraServiceTile(
+                service: service,
+                selected: selectedServiceIds.contains(service.id),
+                onTap: () => onServiceChanged(service.id),
+              ),
+              const SizedBox(height: 8),
+            ],
+          const SizedBox(height: 13),
           _SectionHeading(
             icon: Icons.calendar_month_outlined,
             title: 'Chọn ngày hẹn',
@@ -692,7 +744,7 @@ class _BookingForm extends StatelessWidget {
           const SizedBox(height: 10),
           const _BookingNotice(
             icon: Icons.info_outline,
-            message: 'Giờ được tính theo thời lượng dịch vụ và giờ hoạt động; chưa kiểm tra lịch đã đặt.',
+            message: 'Giờ theo thời lượng dịch vụ và giờ salon. Lịch trùng cá nhân sẽ được kiểm tra lại khi xác nhận.',
             compact: true,
           ),
           const SizedBox(height: 9),
@@ -700,10 +752,24 @@ class _BookingForm extends StatelessWidget {
             builder: (context, constraints) {
               const spacing = 9.0;
               final width = (constraints.maxWidth - spacing * 3) / 4;
+              if (selectedDate == null) {
+                return const _BookingNotice(
+                  icon: Icons.event_outlined,
+                  message: 'Hãy chọn ngày hẹn để xem giờ phù hợp.',
+                  compact: true,
+                );
+              }
+              if (selectedServices.isEmpty) {
+                return const _BookingNotice(
+                  icon: Icons.spa_outlined,
+                  message: 'Hãy chọn dịch vụ trước khi chọn giờ.',
+                  compact: true,
+                );
+              }
               if (availableTimes.isEmpty) {
                 return const _BookingNotice(
                   icon: Icons.event_busy_outlined,
-                  message: 'Không còn giờ bắt đầu nào phù hợp trong ngày này. Hãy thử chọn ngày khác.',
+                  message: 'Không còn giờ bắt đầu phù hợp với ngày và thời lượng đã chọn.',
                   compact: true,
                 );
               }
@@ -723,27 +789,13 @@ class _BookingForm extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: 24),
-          const _SectionHeading(
-            icon: Icons.add_circle_outline,
-            title: 'Dịch vụ thêm',
-          ),
-          const SizedBox(height: 10),
-          for (final service in additionalServices) ...[
-            _ExtraServiceTile(
-              service: service,
-              selected: selectedExtras.contains(service.id),
-              onTap: () => onExtraChanged(service.id),
-            ),
-            const SizedBox(height: 8),
-          ],
-          const _UnavailableServiceTile(),
           const SizedBox(height: 18),
           _BookingSummary(
-            mainService: mainService,
-            selectedServices: additionalServices
-                .where((service) => selectedExtras.contains(service.id))
-                .toList(growable: false),
+            mode: mode,
+            hairstyleService: hairstyleService,
+            services: selectedServices,
+            hairStyleName: hairStyleName,
+            hairStyleColor: hairStyleColor,
             selectedDate: selectedDate,
             selectedTime: selectedTime,
             totalDuration: totalDuration,
@@ -755,8 +807,14 @@ class _BookingForm extends StatelessWidget {
             child: ElevatedButton(
               onPressed:
                   salonSettings.isBookingEnabled &&
-                      availableTimes.isNotEmpty &&
+                      availableTimes.contains(selectedTime) &&
                       selectedTime != null &&
+                      selectedDate != null &&
+                      totalPrice >= 0 &&
+                      totalDuration > 0 &&
+                      selectedServices.isNotEmpty &&
+                      (mode == BookingMode.serviceOnly ||
+                          (hairStyleId != null && hairstyleService != null)) &&
                       !isSaving
                   ? onConfirm
                   : null,
@@ -772,11 +830,11 @@ class _BookingForm extends StatelessWidget {
               ),
               child: isSaving
                   ? const SizedBox(
-                      width: 22,
-                      height: 22,
+                      width: 19,
+                      height: 19,
                       child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
                         color: Colors.white,
+                        strokeWidth: 2,
                       ),
                     )
                   : const Text('Xác nhận đặt lịch'),
@@ -846,6 +904,182 @@ class _PageHeading extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _HairStyleSelectionCard extends StatelessWidget {
+  const _HairStyleSelectionCard({
+    required this.name,
+    required this.color,
+    required this.colorValue,
+    required this.imageUrl,
+    required this.onChange,
+  });
+
+  final String name;
+  final String? color;
+  final int? colorValue;
+  final String? imageUrl;
+  final VoidCallback onChange;
+
+  @override
+  Widget build(BuildContext context) {
+    final uri = Uri.tryParse(imageUrl ?? '');
+    final image = uri != null && uri.scheme == 'https' && uri.host.isNotEmpty
+        ? Image.network(
+            imageUrl!,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => _placeholder(),
+          )
+        : _placeholder();
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .83),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _BookingScreenState._rose),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(13),
+            child: SizedBox(
+              width: 72,
+              height: 78,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  image,
+                  Positioned(
+                    right: 4,
+                    top: 4,
+                    child: CircleAvatar(
+                      radius: 9,
+                      backgroundColor: _BookingScreenState._teal,
+                      child: const Icon(
+                        Icons.check,
+                        size: 12,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Mẫu tóc đã chọn',
+                  style: TextStyle(
+                    color: _BookingScreenState._muted,
+                    fontSize: 10,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    color: _BookingScreenState._ink,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+                if (color != null && color!.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      if (colorValue != null) ...[
+                        Container(
+                          width: 11,
+                          height: 11,
+                          decoration: BoxDecoration(
+                            color: Color(colorValue!),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: _BookingScreenState._rose,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                      ],
+                      Text('Màu $color', style: const TextStyle(fontSize: 11)),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          TextButton(onPressed: onChange, child: const Text('Thay đổi')),
+        ],
+      ),
+    );
+  }
+
+  Widget _placeholder() => Container(
+    color: _BookingScreenState._tealLight,
+    alignment: Alignment.center,
+    child: const Icon(
+      Icons.face_3_outlined,
+      color: _BookingScreenState._teal,
+      size: 34,
+    ),
+  );
+}
+
+class _StyleImage extends StatelessWidget {
+  const _StyleImage({
+    required this.imageUrl,
+    required this.width,
+    required this.height,
+    required this.iconSize,
+  });
+
+  final String? imageUrl;
+  final double width;
+  final double height;
+  final double iconSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final path = imageUrl?.trim() ?? '';
+    final fallback = Container(
+      width: width,
+      height: height,
+      color: const Color(0xFFF1E5E2),
+      child: Center(
+        child: Icon(
+          Icons.face_3_outlined,
+          size: iconSize,
+          color: const Color(0xFFAA827E),
+        ),
+      ),
+    );
+    if (path.isEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(13),
+        child: fallback,
+      );
+    }
+    final image = path.startsWith('http')
+        ? Image.network(
+            path,
+            width: width,
+            height: height,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => fallback,
+          )
+        : Image.asset(
+            path,
+            width: width,
+            height: height,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => fallback,
+          );
+    return ClipRRect(borderRadius: BorderRadius.circular(13), child: image);
   }
 }
 
@@ -1120,7 +1354,7 @@ class _ExtraServiceTile extends StatelessWidget {
     required this.onTap,
   });
 
-  final BookingAdditionalService service;
+  final BookingLineItem service;
   final bool selected;
   final VoidCallback onTap;
 
@@ -1209,86 +1443,46 @@ class _ExtraServiceTile extends StatelessWidget {
   }
 }
 
-class _UnavailableServiceTile extends StatelessWidget {
-  const _UnavailableServiceTile();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
-    decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: .55),
-      borderRadius: BorderRadius.circular(15),
-      border: Border.all(
-        color: _BookingScreenState._rose.withValues(alpha: .65),
-      ),
-    ),
-    child: Row(
-      children: [
-        Container(
-          width: 43,
-          height: 43,
-          decoration: const BoxDecoration(
-            color: Color(0xFFFBEAE7),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.water_drop_outlined,
-            color: Color(0xFFC48483),
-            size: 21,
-          ),
-        ),
-        const SizedBox(width: 10),
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Nhuộm tóc',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-              ),
-              SizedBox(height: 3),
-              Text(
-                'Chưa có dữ liệu giá và thời lượng trên Firestore.',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: _BookingScreenState._muted,
-                  fontSize: 10,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        const Text(
-          'Chưa khả dụng',
-          style: TextStyle(color: _BookingScreenState._muted, fontSize: 10),
-        ),
-      ],
-    ),
-  );
-}
-
 class _BookingSummary extends StatelessWidget {
   const _BookingSummary({
-    required this.mainService,
-    required this.selectedServices,
+    required this.mode,
+    required this.hairstyleService,
+    required this.services,
+    required this.hairStyleName,
+    required this.hairStyleColor,
     required this.selectedDate,
     required this.selectedTime,
     required this.totalDuration,
     required this.totalPrice,
   });
 
-  final BookingService mainService;
-  final List<BookingAdditionalService> selectedServices;
-  final DateTime selectedDate;
+  final BookingMode mode;
+  final BookingService? hairstyleService;
+  final List<BookingLineItem> services;
+  final String? hairStyleName;
+  final String? hairStyleColor;
+  final DateTime? selectedDate;
   final String? selectedTime;
   final int totalDuration;
   final int totalPrice;
 
   @override
   Widget build(BuildContext context) {
-    final date = _formatVietnameseDate(selectedDate);
+    final selectedHairstyleService = hairstyleService;
+    final date = selectedDate == null
+        ? 'Chưa chọn ngày'
+        : _formatVietnameseDate(selectedDate!);
+    final serviceOnly = mode == BookingMode.serviceOnly;
+    final addOnServices = selectedHairstyleService == null
+        ? services
+        : services
+              .where(
+                (service) =>
+                    service.collectionName !=
+                        selectedHairstyleService.collectionName ||
+                    service.id != selectedHairstyleService.id,
+              )
+              .toList(growable: false);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(13),
@@ -1324,28 +1518,65 @@ class _BookingSummary extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _SummaryLabel(
-                      icon: Icons.content_cut,
-                      label: 'Kiểu tóc',
+                    _SummaryLabel(
+                      icon: serviceOnly
+                          ? Icons.spa_outlined
+                          : Icons.content_cut,
+                      label: serviceOnly
+                          ? 'Dịch vụ đã chọn'
+                          : 'Dịch vụ mẫu tóc',
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      mainService.name,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    const SizedBox(height: 8),
-                    const _SummaryLabel(icon: Icons.add, label: 'Dịch vụ thêm'),
-                    const SizedBox(height: 4),
-                    if (selectedServices.isEmpty)
+                    if (serviceOnly && services.isEmpty)
+                      const Text(
+                        'Chưa chọn dịch vụ',
+                        style: TextStyle(
+                          color: _BookingScreenState._muted,
+                          fontSize: 12,
+                        ),
+                      )
+                    else if (serviceOnly)
+                      for (final service in services)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 3),
+                          child: Text(
+                            service.name,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        )
+                    else
+                      Text(
+                        hairstyleService?.name ?? 'Chưa có dịch vụ liên kết',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    if (!serviceOnly && hairStyleName != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        '$hairStyleName${hairStyleColor == null ? '' : ' · $hairStyleColor'}',
+                        style: const TextStyle(
+                          color: _BookingScreenState._muted,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                    if (!serviceOnly) ...[
+                      const SizedBox(height: 8),
+                      const _SummaryLabel(
+                        icon: Icons.add,
+                        label: 'Dịch vụ bổ sung',
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                    if (!serviceOnly && addOnServices.isEmpty)
                       const Text(
                         'Không có',
                         style: TextStyle(
                           color: _BookingScreenState._muted,
                           fontSize: 12,
                         ),
-                      )
-                    else
-                      for (final service in selectedServices)
+                      ),
+                    if (!serviceOnly)
+                      for (final service in addOnServices)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 3),
                           child: Text(
@@ -1435,61 +1666,56 @@ class _SuccessContent extends StatelessWidget {
   const _SuccessContent({
     super.key,
     required this.bookingCode,
-    required this.mainService,
-    required this.imageUrl,
-    required this.selectedServices,
+    required this.mode,
+    required this.services,
+    required this.hairStyleName,
+    required this.hairStyleColor,
+    required this.hairStyleColorValue,
+    required this.hairStyleImageUrl,
     required this.selectedDate,
     required this.selectedTime,
     required this.totalDuration,
     required this.totalPrice,
     required this.salonSettings,
-    required this.onReset,
+    required this.onNewBooking,
   });
 
   final String bookingCode;
-  final BookingService mainService;
-  final String? imageUrl;
-  final List<BookingAdditionalService> selectedServices;
+  final BookingMode mode;
+  final List<BookingLineItem> services;
+  final String? hairStyleName;
+  final String? hairStyleColor;
+  final int? hairStyleColorValue;
+  final String? hairStyleImageUrl;
   final DateTime selectedDate;
   final String selectedTime;
   final int totalDuration;
   final int totalPrice;
   final SalonSettings salonSettings;
-  final VoidCallback onReset;
+  final VoidCallback onNewBooking;
 
-  /// Link Google Calendar có điền sẵn sự kiện. Giờ ghi theo giờ treo tường
-  /// của salon kèm múi giờ (ctz), nên không bị lệch khi đổi múi giờ.
   Uri _calendarUri() {
     final parts = selectedTime.split(':');
-    final hour = int.parse(parts[0]);
-    final minute = int.parse(parts[1]);
-    // Dùng DateTime.utc chỉ để cộng thời lượng cho chính xác;
-    // các con số vẫn là giờ treo tường của salon.
     final start = DateTime.utc(
       selectedDate.year,
       selectedDate.month,
       selectedDate.day,
-      hour,
-      minute,
+      int.parse(parts[0]),
+      int.parse(parts[1]),
     );
     final end = start.add(Duration(minutes: totalDuration));
-
     final details = StringBuffer('Mã lịch hẹn: $bookingCode');
-    if (selectedServices.isNotEmpty) {
-      details.write(
-        '\nDịch vụ thêm: ${selectedServices.map((s) => s.name).join(', ')}',
-      );
-    }
+    details.write(
+      '\nDịch vụ: ${services.map((service) => service.name).join(', ')}',
+    );
     details.write('\nTổng chi phí dự kiến: ${_formatMoney(totalPrice)}đ');
-
-    final address = salonSettings.address;
-    final location = address.isEmpty
+    final location = salonSettings.address.isEmpty
         ? salonSettings.salonName
-        : '${salonSettings.salonName}, $address';
-
+        : '${salonSettings.salonName}, ${salonSettings.address}';
     return Uri.https('calendar.google.com', '/calendar/render', {
       'action': 'TEMPLATE',
-      'text': '${salonSettings.salonName}: ${mainService.name}',
+      'text':
+          '${salonSettings.salonName}: ${services.map((service) => service.name).join(', ')}',
       'dates': '${_calendarStamp(start)}/${_calendarStamp(end)}',
       'details': details.toString(),
       'location': location,
@@ -1598,9 +1824,12 @@ class _SuccessContent extends StatelessWidget {
           ),
           const SizedBox(height: 22),
           _SuccessServiceCard(
-            mainService: mainService,
-            imageUrl: imageUrl,
-            selectedServices: selectedServices,
+            mode: mode,
+            services: services,
+            hairStyleName: hairStyleName,
+            hairStyleColor: hairStyleColor,
+            hairStyleColorValue: hairStyleColorValue,
+            hairStyleImageUrl: hairStyleImageUrl,
             totalPrice: totalPrice,
           ),
           const SizedBox(height: 12),
@@ -1660,8 +1889,7 @@ class _SuccessContent extends StatelessWidget {
             title: 'Chi phí',
             child: Column(
               children: [
-                _PriceLine(label: mainService.name, price: mainService.price),
-                for (final service in selectedServices)
+                for (final service in services)
                   _PriceLine(label: service.name, price: service.price),
                 const Divider(height: 17),
                 _PriceLine(
@@ -1697,9 +1925,26 @@ class _SuccessContent extends StatelessWidget {
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onNewBooking,
+              icon: const Icon(Icons.add),
+              label: const Text('Đặt lịch mới'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _BookingScreenState._teal,
+                minimumSize: const Size.fromHeight(48),
+                side: const BorderSide(color: _BookingScreenState._teal),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                onReset();
+                BookingDraftStore.instance.clear();
                 context.go('/home');
               },
               style: ElevatedButton.styleFrom(
@@ -1716,7 +1961,7 @@ class _SuccessContent extends StatelessWidget {
           const SizedBox(height: 6),
           TextButton(
             onPressed: () {
-              onReset();
+              BookingDraftStore.instance.clear();
               context.go('/styles');
             },
             style: TextButton.styleFrom(
@@ -1741,83 +1986,156 @@ class _SuccessContent extends StatelessWidget {
 
 class _SuccessServiceCard extends StatelessWidget {
   const _SuccessServiceCard({
-    required this.mainService,
-    required this.imageUrl,
-    required this.selectedServices,
+    required this.mode,
+    required this.services,
+    required this.hairStyleName,
+    required this.hairStyleColor,
+    required this.hairStyleColorValue,
+    required this.hairStyleImageUrl,
     required this.totalPrice,
   });
 
-  final BookingService mainService;
-  final String? imageUrl;
-  final List<BookingAdditionalService> selectedServices;
+  final BookingMode mode;
+  final List<BookingLineItem> services;
+  final String? hairStyleName;
+  final String? hairStyleColor;
+  final int? hairStyleColorValue;
+  final String? hairStyleImageUrl;
   final int totalPrice;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: .8),
-      border: Border.all(color: _BookingScreenState._rose),
-      borderRadius: BorderRadius.circular(17),
-    ),
-    child: Row(
-      children: [
-        _StyleImage(imageUrl: imageUrl, width: 94, height: 120, iconSize: 46),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                mainService.name,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
+  Widget build(BuildContext context) {
+    final imageUri = Uri.tryParse(hairStyleImageUrl ?? '');
+    final showStyleImage =
+        mode == BookingMode.hairstyle &&
+        imageUri != null &&
+        imageUri.scheme == 'https' &&
+        imageUri.host.isNotEmpty;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .8),
+        border: Border.all(color: _BookingScreenState._rose),
+        borderRadius: BorderRadius.circular(17),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 94,
+            height: 120,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(13),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFF2DDD6), Color(0xFFE9E6E2)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              const SizedBox(height: 4),
-              Text(
-                mainService.description,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: _BookingScreenState._muted,
-                  height: 1.35,
-                ),
-              ),
-              if (selectedServices.isNotEmpty) ...[
-                const SizedBox(height: 9),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _BookingScreenState._tealLight,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '✦  ${selectedServices.map((service) => service.name).join(' · ')}',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: _BookingScreenState._teal,
+            ),
+            child: showStyleImage
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(13),
+                    child: Image.network(
+                      hairStyleImageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => _stylePlaceholder(),
                     ),
+                  )
+                : _stylePlaceholder(),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  mode == BookingMode.hairstyle
+                      ? hairStyleName ?? 'Mẫu tóc đã chọn'
+                      : 'Dịch vụ đã chọn',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                if (mode == BookingMode.hairstyle && hairStyleColor != null)
+                  Row(
+                    children: [
+                      if (hairStyleColorValue != null) ...[
+                        Container(
+                          width: 11,
+                          height: 11,
+                          decoration: BoxDecoration(
+                            color: Color(hairStyleColorValue!),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: _BookingScreenState._rose,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                      ],
+                      Text(
+                        'Màu $hairStyleColor',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: _BookingScreenState._muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                const SizedBox(height: 7),
+                for (final service in services)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Text(
+                      '${service.name} · ${service.durationMinutes} phút',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: _BookingScreenState._muted,
+                      ),
+                    ),
+                  ),
+                if (services.isNotEmpty) ...[
+                  const SizedBox(height: 9),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _BookingScreenState._tealLight,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '✦  ${services.map((service) => service.name).join(' · ')}',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: _BookingScreenState._teal,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 3),
+                Text(
+                  'Tổng chi phí dự kiến  ${_formatMoney(totalPrice)}đ',
+                  style: const TextStyle(
+                    color: _BookingScreenState._ink,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
                   ),
                 ),
               ],
-              const SizedBox(height: 10),
-              Text(
-                'Tổng chi phí dự kiến  ${_formatMoney(totalPrice)}đ',
-                style: const TextStyle(
-                  color: _BookingScreenState._ink,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ],
-    ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stylePlaceholder() => const Center(
+    child: Icon(Icons.face_3_outlined, size: 46, color: Color(0xFFAA827E)),
   );
 }
 

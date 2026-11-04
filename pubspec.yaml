@@ -48,6 +48,7 @@ dependencies:
   image_picker: ^1.2.4
   tflite_flutter: ^0.12.1
   cloud_firestore: ^7.1.0
+  flutter_local_notifications: ^21.0.0
   url_launcher: ^6.3.3
 
 dev_dependencies:

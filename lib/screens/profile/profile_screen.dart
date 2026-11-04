@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -22,8 +24,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   UserProfile? _profile;
   List<Appointment> _appointments = [];
+  String? _appointmentsError;
   bool _loading = true;
   int _tab = 0; // 0 = Mẫu đã lưu, 1 = Lịch hẹn
+  StreamSubscription<List<Appointment>>? _appointmentSubscription;
 
   @override
   void initState() {
@@ -31,12 +35,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Danh sách tim có thể về SAU khi Hồ sơ đã mở (tải từ server chậm),
     // lúc đó mới biết cần tải thêm kiểu tóc để tra tên + ảnh.
     favoriteStyles.addListener(_onFavoritesChanged);
+    _appointmentSubscription = _service.watchAppointments().listen(
+      (appointments) {
+        if (!mounted) return;
+        setState(() {
+          _appointments = appointments;
+          _appointmentsError = null;
+        });
+      },
+      onError: (Object error) {
+        if (!mounted) return;
+        setState(() => _appointmentsError = error.toString());
+      },
+    );
     _load();
   }
 
   @override
   void dispose() {
     favoriteStyles.removeListener(_onFavoritesChanged);
+    unawaited(_appointmentSubscription?.cancel());
     super.dispose();
   }
 
@@ -45,11 +63,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _load() async {
     final profile = await _service.getProfile();
     await _service.ensureHairStylesLoaded(); // để tra được tên + ảnh mẫu đã lưu
-    final appointments = await _service.getAppointments();
     if (!mounted) return;
     setState(() {
       _profile = profile;
-      _appointments = appointments;
       _loading = false;
     });
   }
@@ -183,16 +199,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
     if (ok != true) return;
-
-    final success = await _service.cancelAppointment(a.id);
-    if (!mounted) return;
-    if (!success) {
-      _toast('Không hủy được lịch hẹn. Hãy kiểm tra kết nối rồi thử lại.');
-      return;
+    try {
+      await _service.cancelAppointment(a.id);
+      final list = await _service.getAppointments();
+      if (!mounted) return;
+      setState(() {
+        _appointments = list;
+        _appointmentsError = null;
+      });
+      _toast('Đã hủy lịch hẹn ${a.code}');
+    } catch (error) {
+      if (!mounted) return;
+      _toast('Không thể hủy lịch hẹn: $error');
     }
-    await _refreshAppointments();
-    if (!mounted) return;
-    _toast('Đã hủy lịch hẹn ${a.code}');
+  }
+
+  Future<void> _reloadAppointments() async {
+    setState(() => _appointmentsError = null);
+    try {
+      final appointments = await _service.getAppointments();
+      if (!mounted) return;
+      setState(() {
+        _appointments = appointments;
+        _appointmentsError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _appointmentsError = error.toString());
+    }
   }
 
   // ================= GIAO DIỆN =================
@@ -663,6 +697,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (_appointmentsError != null) ...[
+          _card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Chưa tải được lịch hẹn từ Firestore.',
+                  style: TextStyle(color: AppColors.textGrey),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _appointmentsError!,
+                  style: const TextStyle(
+                    color: AppColors.textGrey,
+                    fontSize: 11,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _reloadAppointments,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Thử lại'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
         _sectionTitle('Lịch hẹn sắp tới', Icons.auto_awesome),
         const SizedBox(height: 12),
         if (upcoming.isEmpty)
@@ -715,7 +776,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildStatusChip(a.status, upcoming: true),
                 const SizedBox(height: 6),
                 Text(
-                  a.serviceName,
+                  a.displayServiceName,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
@@ -759,7 +820,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Expanded(
             child: Text(
-              a.serviceName,
+              a.displayServiceName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w600),
@@ -870,7 +931,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(a.serviceName, style: AppTheme.titleFont(size: 22)),
+              Text(a.displayServiceName, style: AppTheme.titleFont(size: 22)),
+              if (a.hairStyleColor != null)
+                Text(
+                  'Màu tóc: ${a.hairStyleColor}',
+                  style: const TextStyle(color: AppColors.textGrey),
+                ),
               Text(
                 'Mã lịch hẹn: ${a.code}',
                 style: const TextStyle(color: AppColors.textGrey),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../app/data/booking_selection.dart';
+import '../../app/data/booking_draft_store.dart';
 import '../../app/data/favorite_styles.dart';
 import '../../app/data/hair_ar_assets.dart';
 import '../../app/data/hair_style.dart';
@@ -64,8 +64,24 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
 
   /// Ghi mẫu + màu đang xem rồi chuyển sang tab Đặt lịch.
   void _book(HairStyle style) {
-    bookingSelection.choose(style, _color);
+    BookingDraftStore.instance.selectHairStyle(
+      style: style,
+      color: _color,
+      serviceId: bookingServiceIdForHairStyle(style),
+    );
     context.go('/booking');
+  }
+
+  void _saveToCollection(HairStyle style) {
+    favoriteStyles.add(style.id);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Đã lưu mẫu tóc vào bộ sưu tập.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   /// Đặt nền pastel (giống trang AR) phía sau cả trang.
@@ -359,21 +375,47 @@ class _HairStyleDetailScreenState extends State<HairStyleDetailScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _tryAr(style),
-              icon: const Icon(Icons.center_focus_strong, size: 18),
-              label: const Text('Thử với AR'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.teal,
-                minimumSize: const Size.fromHeight(44),
-                side: const BorderSide(color: AppColors.teal),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _tryAr(style),
+                  icon: const Icon(Icons.center_focus_strong, size: 18),
+                  label: const Text('Thử với AR'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.teal,
+                    minimumSize: const Size.fromHeight(48),
+                    side: const BorderSide(color: AppColors.teal),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _saveToCollection(style),
+                  icon: const Icon(
+                    Icons.collections_bookmark_outlined,
+                    size: 18,
+                  ),
+                  label: const Text(
+                    'Lưu mẫu',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.pink,
+                    side: const BorderSide(color: AppColors.pink),
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

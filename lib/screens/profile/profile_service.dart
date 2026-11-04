@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer' as developer;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -27,7 +26,11 @@ class ProfileService {
   static final instance = ProfileService._();
 
   /// Hồ sơ dự phòng khi chưa đăng nhập (không nên xảy ra vì router đã chặn).
-  static const _guestProfile = UserProfile(id: 'guest', name: 'Khách', phone: '');
+  static const _guestProfile = UserProfile(
+    id: 'guest',
+    name: 'Khách',
+    phone: '',
+  );
 
   /// Hồ sơ của người đang đăng nhập (giữ trong RAM cho nhanh).
   UserProfile? _profile;
@@ -91,11 +94,15 @@ class ProfileService {
     _profile = profile;
 
     await _saveLocal(profile);
-    await _pushRemote(profile); // mất mạng thì bỏ qua, lần sau mở app sẽ đồng bộ lại
+    await _pushRemote(
+      profile,
+    ); // mất mạng thì bỏ qua, lần sau mở app sẽ đồng bộ lại
 
     if (nameChanged) {
       try {
-        await FirebaseAuth.instance.currentUser?.updateDisplayName(profile.name);
+        await FirebaseAuth.instance.currentUser?.updateDisplayName(
+          profile.name,
+        );
       } on FirebaseAuthException {
         // Lỗi mạng... -> bỏ qua, tên vẫn đã lưu trên máy và Firestore.
       }
@@ -138,7 +145,11 @@ class ProfileService {
       if (headers == null) return false;
       final body = profile.toMap()..remove('phone'); // SĐT không lưu ở đây
       final res = await http
-          .put(Uri.parse('$apiBaseUrl/me'), headers: headers, body: jsonEncode(body))
+          .put(
+            Uri.parse('$apiBaseUrl/me'),
+            headers: headers,
+            body: jsonEncode(body),
+          )
           .timeout(const Duration(seconds: 15));
       return res.statusCode == 200;
     } catch (_) {
@@ -215,52 +226,62 @@ class ProfileService {
     favoriteStyles.add(style.id);
   }
 
-  // ---------- Lịch hẹn (đọc thật từ Firestore) ----------
+  // ---------- Lịch hẹn Firestore ----------
 
-  /// Lấy lịch hẹn của người đang đăng nhập, mới nhất lên trước.
-  /// Chỉ lọc theo userId (Security Rules cũng chỉ cho đọc lịch của chính mình),
-  /// việc sắp xếp làm trong app nên không cần tạo index trên Firestore.
-  /// Lỗi mạng / lỗi quyền -> trả về danh sách rỗng để màn hình không bị treo.
+  /// Reads only bookings owned by the authenticated Firebase user.
   Future<List<Appointment>> getAppointments() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return [];
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('bookings')
-          .where('userId', isEqualTo: uid)
-          .get()
-          .timeout(const Duration(seconds: 15));
-      final list = [
-        for (final doc in snapshot.docs) Appointment.fromMap(doc.id, doc.data()),
-      ];
-      list.sort((a, b) => b.startTime.compareTo(a.startTime));
-      return list;
-    } catch (error) {
-      developer.log(
-        'getAppointments error: $error',
-        name: 'lunas.profile.appointments',
-      );
-      return [];
-    }
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const [];
+    final snapshot = await FirebaseFirestore.instance
+        .collection('bookings')
+        .where('userId', isEqualTo: user.uid)
+        .get()
+        .timeout(const Duration(seconds: 15));
+    final list = [
+      for (final document in snapshot.docs)
+        Appointment.fromMap(document.id, document.data()),
+    ];
+    list.sort((a, b) => b.startTime.compareTo(a.startTime));
+    return list;
   }
 
-  /// Hủy một lịch hẹn: đổi status thành 'cancelled' (đúng Security Rules:
-  /// chỉ chủ lịch được đổi, chỉ đổi trường status, chỉ từ pending/confirmed).
-  /// Trả về true nếu hủy được, false nếu lỗi (mất mạng, bị từ chối quyền...).
-  Future<bool> cancelAppointment(String id) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('bookings')
-          .doc(id)
-          .update({'status': 'cancelled'}).timeout(const Duration(seconds: 15));
-      return true;
-    } catch (error) {
-      developer.log(
-        'cancelAppointment error: $error',
-        name: 'lunas.profile.appointments',
-      );
-      return false;
+  /// Keeps the retained Profile tab in sync after a Booking is created.
+  Stream<List<Appointment>> watchAppointments() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return Stream.value(const []);
+    return FirebaseFirestore.instance
+        .collection('bookings')
+        .where('userId', isEqualTo: user.uid)
+        .snapshots()
+        .map((snapshot) {
+          final appointments = [
+            for (final document in snapshot.docs)
+              Appointment.fromMap(document.id, document.data()),
+          ];
+          appointments.sort((a, b) => b.startTime.compareTo(a.startTime));
+          return appointments;
+        });
+  }
+
+  /// Updates only an upcoming booking owned by the current user.
+  Future<void> cancelAppointment(String id) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw StateError('Bạn cần đăng nhập để hủy lịch hẹn.');
     }
+    final reference = FirebaseFirestore.instance.collection('bookings').doc(id);
+    final document = await reference.get().timeout(const Duration(seconds: 15));
+    final data = document.data();
+    if (!document.exists || data == null || data['userId'] != user.uid) {
+      throw StateError('Không tìm thấy lịch hẹn của bạn.');
+    }
+    final appointment = Appointment.fromMap(document.id, data);
+    if (!appointment.isUpcoming) {
+      throw StateError('Chỉ có thể hủy lịch hẹn sắp tới chưa hoàn thành.');
+    }
+    await reference
+        .update({'status': 'cancelled'})
+        .timeout(const Duration(seconds: 15));
   }
 
   // ---------- Đăng xuất ----------
@@ -287,15 +308,19 @@ class ProfileService {
     required String undertone,
     required String vibe,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 1200)); // giả vờ AI đang nghĩ
+    await Future.delayed(
+      const Duration(milliseconds: 1200),
+    ); // giả vờ AI đang nghĩ
 
     final wanted = _vibeTypes[vibe] ?? const <HairType>{};
     var pool = hairStyles.where((s) => s.types.any(wanted.contains)).toList();
-    if (pool.length < 3) pool = List.of(hairStyles); // ít quá thì lấy cả bộ sưu tập
+    if (pool.length < 3)
+      pool = List.of(hairStyles); // ít quá thì lấy cả bộ sưu tập
     if (pool.isEmpty) return [];
 
     // Chọn vị trí bắt đầu khác nhau tùy lựa chọn, để mỗi lần chọn khác ra kết quả khác
-    final start = (occasion.length + skinTone.length + undertone.length) % pool.length;
+    final start =
+        (occasion.length + skinTone.length + undertone.length) % pool.length;
     final count = pool.length < 3 ? pool.length : 3;
 
     return [

@@ -72,11 +72,7 @@ class UserProfile {
 
 /// Một mẫu tóc người dùng đã bấm tim để lưu.
 class SavedStyle {
-  const SavedStyle({
-    required this.id,
-    required this.name,
-    required this.image,
-  });
+  const SavedStyle({required this.id, required this.name, required this.image});
 
   final String id;
   final String name;
@@ -127,23 +123,35 @@ class Appointment {
     required this.totalPrice,
     required this.status,
     this.stylistName,
+    this.hairStyleName,
+    this.hairStyleColor,
+    this.bookingType = 'legacy',
   });
 
   final String id;
-  final String code;           // ví dụ "#LUNAS1031"
-  final String serviceName;    // ví dụ "Cắt + Nhuộm"
+  final String code; // ví dụ "#LUNAS1031"
+  final String serviceName; // ví dụ "Cắt + Nhuộm"
   final String salonName;
   final String salonAddress;
-  final DateTime startTime;    // ngày giờ hẹn
+  final DateTime startTime; // ngày giờ hẹn
   final String image;
-  final int totalPrice;        // tiền, đơn vị đồng
+  final int totalPrice; // tiền, đơn vị đồng
   final AppointmentStatus status;
-  final String? stylistName;   // có thể không có
+  final String? stylistName; // có thể không có
+  final String? hairStyleName;
+  final String? hairStyleColor;
+  final String bookingType;
+
+  String get displayServiceName =>
+      hairStyleName == null || hairStyleName!.isEmpty
+      ? serviceName
+      : '$hairStyleName · $serviceName';
 
   /// Lịch sắp tới = chưa tới giờ VÀ chưa hủy, chưa xong.
   bool get isUpcoming {
     final notYet = startTime.isAfter(DateTime.now());
-    final active = status == AppointmentStatus.pending ||
+    final active =
+        status == AppointmentStatus.pending ||
         status == AppointmentStatus.confirmed;
     return notYet && active;
   }
@@ -159,6 +167,9 @@ class Appointment {
       image: image,
       totalPrice: totalPrice,
       stylistName: stylistName,
+      hairStyleName: hairStyleName,
+      hairStyleColor: hairStyleColor,
+      bookingType: bookingType,
       status: status ?? this.status,
     );
   }
@@ -166,17 +177,54 @@ class Appointment {
   /// Đọc từ collection 'bookings' (do phần Đặt lịch ghi vào).
   /// startTime trên Firestore là Timestamp nên đọc bằng _readDateTime.
   factory Appointment.fromMap(String id, Map<String, dynamic> map) {
+    DateTime parseDate(Object? raw) {
+      if (raw is Timestamp) return raw.toDate();
+      if (raw is DateTime) return raw;
+      if (raw is int) return DateTime.fromMillisecondsSinceEpoch(raw);
+      if (raw is num) return DateTime.fromMillisecondsSinceEpoch(raw.toInt());
+      return DateTime.fromMillisecondsSinceEpoch(0);
+    }
+
+    final services = map['services'];
+    final fallbackNames = services is List
+        ? services
+              .whereType<Map>()
+              .map((item) => item['name'])
+              .whereType<String>()
+              .where((name) => name.trim().isNotEmpty)
+              .join(' · ')
+        : '';
+    final rawPrice = map['totalPrice'];
     return Appointment(
       id: id,
-      code: map['code'] ?? '',
-      serviceName: map['serviceName'] ?? '',
-      salonName: map['salonName'] ?? '',
-      salonAddress: map['salonAddress'] ?? '',
-      startTime: _readDateTime(map['startTime']),
-      image: map['image'] ?? '',
-      totalPrice: (map['totalPrice'] as num?)?.toInt() ?? 0,
+      code: map['code'] is String ? map['code'] as String : '',
+      serviceName:
+          map['serviceName'] is String &&
+              (map['serviceName'] as String).trim().isNotEmpty
+          ? map['serviceName'] as String
+          : fallbackNames,
+      salonName: map['salonName'] is String ? map['salonName'] as String : '',
+      salonAddress: map['salonAddress'] is String
+          ? map['salonAddress'] as String
+          : '',
+      startTime: parseDate(map['startTime']),
+      image: map['hairStyleImageUrl'] is String
+          ? map['hairStyleImageUrl'] as String
+          : (map['image'] is String ? map['image'] as String : ''),
+      totalPrice: rawPrice is num ? rawPrice.toInt() : 0,
       status: AppointmentStatus.fromName(map['status'] as String?),
-      stylistName: map['stylistName'] as String?,
+      stylistName: map['stylistName'] is String
+          ? map['stylistName'] as String
+          : null,
+      hairStyleName: map['hairStyleName'] is String
+          ? map['hairStyleName'] as String
+          : null,
+      hairStyleColor: map['hairStyleColor'] is String
+          ? map['hairStyleColor'] as String
+          : null,
+      bookingType: map['bookingType'] is String
+          ? map['bookingType'] as String
+          : 'legacy',
     );
   }
 }
@@ -185,12 +233,6 @@ class Appointment {
 /// - Timestamp của Firestore -> .toDate()
 /// - Số mili giây (cách lưu cũ) -> DateTime.fromMillisecondsSinceEpoch
 /// - Không đọc được -> mốc 0 (không làm app bị sập).
-DateTime _readDateTime(Object? value) {
-  if (value is Timestamp) return value.toDate();
-  if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
-  return DateTime.fromMillisecondsSinceEpoch(0);
-}
-
 // ---------- Hàm định dạng ----------
 
 const _weekdays = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
@@ -219,6 +261,6 @@ String formatVnd(int amount) {
 class AiSuggestion {
   const AiSuggestion({required this.style, required this.reason});
 
-  final SavedStyle style;   // dùng lại khuôn SavedStyle để lưu được luôn
-  final String reason;      // ví dụ "Hợp vibe Thanh lịch khi đi làm..."
+  final SavedStyle style; // dùng lại khuôn SavedStyle để lưu được luôn
+  final String reason; // ví dụ "Hợp vibe Thanh lịch khi đi làm..."
 }
