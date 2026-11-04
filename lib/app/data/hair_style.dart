@@ -116,6 +116,7 @@ class HairStyle {
     this.isNew = false,
     this.imageUrl,
     this.colorImages = const {},
+    this.bookingServiceId,
     String? description,
     String? duration,
     String? price,
@@ -134,6 +135,8 @@ class HairStyle {
   final bool isNew; // dùng cho "Mới nhất"
   final String? imageUrl; // ảnh mặc định của mẫu
   final Map<HairColor, String> colorImages; // ảnh riêng theo từng màu (nếu có)
+  final String?
+  bookingServiceId; // id dịch vụ Firestore tương ứng, nếu API cung cấp
   final String? _description;
   final String? _duration; // thời gian làm do server gửi (trống thì tự tính)
   final String? _price; // giá do server gửi (trống thì tự tính)
@@ -268,6 +271,9 @@ class HairStyle {
       isNew: j['isNew'] == true,
       imageUrl: url(j['imageUrl']),
       colorImages: colorImages,
+      bookingServiceId: (j['bookingServiceId'] ?? j['serviceId'])
+          ?.toString()
+          .trim(),
       description: j['description']?.toString(),
       duration: j['duration']?.toString(),
       price: j['price']?.toString(),

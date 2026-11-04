@@ -1,10 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/data/favorite_styles.dart';
 import '../../app/data/hair_style_api.dart';
 import '../../app/theme.dart';
-import 'ai_suggest_screen.dart';   // BÀI 7B
+import 'ai_suggest_screen.dart'; // BÀI 7B
 import 'profile_models.dart';
 import 'profile_service.dart';
 import 'profile_sheets.dart';
@@ -21,8 +23,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   UserProfile? _profile;
   List<Appointment> _appointments = [];
+  String? _appointmentsError;
   bool _loading = true;
-  int _tab = 0;                           // 0 = Mẫu đã lưu, 1 = Lịch hẹn
+  int _tab = 0; // 0 = Mẫu đã lưu, 1 = Lịch hẹn
+  StreamSubscription<List<Appointment>>? _appointmentSubscription;
 
   @override
   void initState() {
@@ -30,12 +34,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Danh sách tim có thể về SAU khi Hồ sơ đã mở (tải từ server chậm),
     // lúc đó mới biết cần tải thêm kiểu tóc để tra tên + ảnh.
     favoriteStyles.addListener(_onFavoritesChanged);
+    _appointmentSubscription = _service.watchAppointments().listen(
+      (appointments) {
+        if (!mounted) return;
+        setState(() {
+          _appointments = appointments;
+          _appointmentsError = null;
+        });
+      },
+      onError: (Object error) {
+        if (!mounted) return;
+        setState(() => _appointmentsError = error.toString());
+      },
+    );
     _load();
   }
 
   @override
   void dispose() {
     favoriteStyles.removeListener(_onFavoritesChanged);
+    unawaited(_appointmentSubscription?.cancel());
     super.dispose();
   }
 
@@ -44,17 +62,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _load() async {
     final profile = await _service.getProfile();
     await _service.ensureHairStylesLoaded(); // để tra được tên + ảnh mẫu đã lưu
-    final appointments = await _service.getAppointments();
     if (!mounted) return;
     setState(() {
       _profile = profile;
-      _appointments = appointments;
       _loading = false;
     });
   }
 
   void _toast(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   // ================= CHỮ TÓM TẮT (xử lý khi hồ sơ còn trống) =================
@@ -138,7 +155,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Đăng xuất', style: TextStyle(color: AppColors.pink)),
+            child: const Text(
+              'Đăng xuất',
+              style: TextStyle(color: AppColors.pink),
+            ),
           ),
         ],
       ),
@@ -162,17 +182,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Hủy lịch', style: TextStyle(color: AppColors.pink)),
+            child: const Text(
+              'Hủy lịch',
+              style: TextStyle(color: AppColors.pink),
+            ),
           ),
         ],
       ),
     );
     if (ok != true) return;
-    await _service.cancelAppointment(a.id);
-    final list = await _service.getAppointments();
-    if (!mounted) return;
-    setState(() => _appointments = list);
-    _toast('Đã hủy lịch hẹn ${a.code}');
+    try {
+      await _service.cancelAppointment(a.id);
+      final list = await _service.getAppointments();
+      if (!mounted) return;
+      setState(() {
+        _appointments = list;
+        _appointmentsError = null;
+      });
+      _toast('Đã hủy lịch hẹn ${a.code}');
+    } catch (error) {
+      if (!mounted) return;
+      _toast('Không thể hủy lịch hẹn: $error');
+    }
+  }
+
+  Future<void> _reloadAppointments() async {
+    setState(() => _appointmentsError = null);
+    try {
+      final appointments = await _service.getAppointments();
+      if (!mounted) return;
+      setState(() {
+        _appointments = appointments;
+        _appointmentsError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _appointmentsError = error.toString());
+    }
   }
 
   // ================= GIAO DIỆN =================
@@ -201,7 +247,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   /// Thẻ trắng bo góc, dùng lại nhiều chỗ
-  Widget _card({required Widget child, EdgeInsets padding = const EdgeInsets.all(16)}) {
+  Widget _card({
+    required Widget child,
+    EdgeInsets padding = const EdgeInsets.all(16),
+  }) {
     return Container(
       width: double.infinity,
       padding: padding,
@@ -231,13 +280,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final w = width ?? double.infinity;
 
     Widget placeholder() => Container(
-          width: w,
-          height: height,
-          color: const Color(0xFFF6E3E8),
-          child: const Center(
-            child: Icon(Icons.face_retouching_natural, color: AppColors.teal, size: 28),
-          ),
-        );
+      width: w,
+      height: height,
+      color: const Color(0xFFF6E3E8),
+      child: const Center(
+        child: Icon(
+          Icons.face_retouching_natural,
+          color: AppColors.teal,
+          size: 28,
+        ),
+      ),
+    );
 
     Widget image;
     if (path.isEmpty) {
@@ -284,7 +337,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 4),
                 Text(
                   _styleSummary(profile),
-                  style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textGrey,
+                  ),
                 ),
               ],
             ),
@@ -373,8 +429,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: 20),
         _buildMenu(profile),
-        const SizedBox(height: 20),   // BÀI 7B
-        _buildAiButton(),             // BÀI 7B
+        const SizedBox(height: 20), // BÀI 7B
+        _buildAiButton(), // BÀI 7B
       ],
     );
   }
@@ -403,7 +459,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: Colors.white,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.favorite, size: 16, color: AppColors.pink),
+                    child: const Icon(
+                      Icons.favorite,
+                      size: 16,
+                      color: AppColors.pink,
+                    ),
                   ),
                 ),
               ),
@@ -518,10 +578,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: const Color(0xFFF6E3E8),
         child: Icon(icon, color: AppColors.pink, size: 20),
       ),
-      title: Text(title, style: TextStyle(color: color, fontWeight: FontWeight.w500)),
+      title: Text(
+        title,
+        style: TextStyle(color: color, fontWeight: FontWeight.w500),
+      ),
       subtitle: subtitle == null
           ? null
-          : Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textGrey)),
+          : Text(
+              subtitle,
+              style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
+            ),
       trailing: trailing ?? Icon(Icons.arrow_forward, size: 18, color: color),
     );
   }
@@ -535,12 +601,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (_appointmentsError != null) ...[
+          _card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Chưa tải được lịch hẹn từ Firestore.',
+                  style: TextStyle(color: AppColors.textGrey),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _appointmentsError!,
+                  style: const TextStyle(
+                    color: AppColors.textGrey,
+                    fontSize: 11,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _reloadAppointments,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Thử lại'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
         _sectionTitle('Lịch hẹn sắp tới', Icons.auto_awesome),
         const SizedBox(height: 12),
         if (upcoming.isEmpty)
           _card(
-            child: const Text('Chưa có lịch hẹn sắp tới.',
-                style: TextStyle(color: AppColors.textGrey)),
+            child: const Text(
+              'Chưa có lịch hẹn sắp tới.',
+              style: TextStyle(color: AppColors.textGrey),
+            ),
           )
         else
           for (final a in upcoming) ...[
@@ -552,15 +647,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 12),
         if (history.isEmpty)
           _card(
-            child: const Text('Chưa có lịch sử.', style: TextStyle(color: AppColors.textGrey)),
+            child: const Text(
+              'Chưa có lịch sử.',
+              style: TextStyle(color: AppColors.textGrey),
+            ),
           )
         else
           _card(
             padding: EdgeInsets.zero,
             child: Column(
-              children: [
-                for (final a in history) _buildHistoryRow(a),
-              ],
+              children: [for (final a in history) _buildHistoryRow(a)],
             ),
           ),
         const SizedBox(height: 16),
@@ -583,10 +679,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 _buildStatusChip(a.status, upcoming: true),
                 const SizedBox(height: 6),
-                Text(a.serviceName,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                Text(
+                  a.displayServiceName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
                 _buildSmallLine(Icons.location_on_outlined, a.salonName),
-                _buildSmallLine(Icons.calendar_today_outlined, formatAppointmentTime(a.startTime)),
+                _buildSmallLine(
+                  Icons.calendar_today_outlined,
+                  formatAppointmentTime(a.startTime),
+                ),
                 if (a.stylistName != null)
                   _buildSmallLine(Icons.person_outline, a.stylistName!),
                 Align(
@@ -598,7 +702,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       side: const BorderSide(color: AppColors.pink),
                       visualDensity: VisualDensity.compact,
                     ),
-                    child: const Text('Xem chi tiết', style: TextStyle(fontSize: 12)),
+                    child: const Text(
+                      'Xem chi tiết',
+                      style: TextStyle(fontSize: 12),
+                    ),
                   ),
                 ),
               ],
@@ -616,10 +723,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       title: Row(
         children: [
           Expanded(
-            child: Text(a.serviceName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w600)),
+            child: Text(
+              a.displayServiceName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
           _buildStatusChip(a.status, upcoming: false),
         ],
@@ -628,7 +737,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSmallLine(Icons.location_on_outlined, a.salonName),
-          _buildSmallLine(Icons.calendar_today_outlined, formatAppointmentTime(a.startTime)),
+          _buildSmallLine(
+            Icons.calendar_today_outlined,
+            formatAppointmentTime(a.startTime),
+          ),
         ],
       ),
       trailing: const Icon(Icons.chevron_right, color: AppColors.textGrey),
@@ -650,9 +762,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
-      child: Text(status.label,
-          style: TextStyle(fontSize: 10, color: fg, fontWeight: FontWeight.w600)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        status.label,
+        style: TextStyle(fontSize: 10, color: fg, fontWeight: FontWeight.w600),
+      ),
     );
   }
 
@@ -664,10 +781,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Icon(icon, size: 13, color: AppColors.textGrey),
           const SizedBox(width: 4),
           Expanded(
-            child: Text(text,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 11, color: AppColors.textGrey)),
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11, color: AppColors.textGrey),
+            ),
           ),
         ],
       ),
@@ -681,7 +800,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           const CircleAvatar(
             backgroundColor: Color(0xFFF6E3E8),
-            child: Icon(Icons.calendar_month_outlined, color: AppColors.pink, size: 20),
+            child: Icon(
+              Icons.calendar_month_outlined,
+              color: AppColors.pink,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           const Expanded(
@@ -712,15 +835,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(a.serviceName, style: AppTheme.titleFont(size: 22)),
-              Text('Mã lịch hẹn: ${a.code}', style: const TextStyle(color: AppColors.textGrey)),
+              Text(a.displayServiceName, style: AppTheme.titleFont(size: 22)),
+              if (a.hairStyleColor != null)
+                Text(
+                  'Màu tóc: ${a.hairStyleColor}',
+                  style: const TextStyle(color: AppColors.textGrey),
+                ),
+              Text(
+                'Mã lịch hẹn: ${a.code}',
+                style: const TextStyle(color: AppColors.textGrey),
+              ),
               const SizedBox(height: 16),
               _buildInfoLine(Icons.storefront_outlined, a.salonName),
               _buildInfoLine(Icons.location_on_outlined, a.salonAddress),
-              _buildInfoLine(Icons.schedule, formatAppointmentTime(a.startTime)),
-              if (a.stylistName != null) _buildInfoLine(Icons.person_outline, a.stylistName!),
-              _buildInfoLine(Icons.payments_outlined, 'Tổng chi phí: ${formatVnd(a.totalPrice)}'),
-              _buildInfoLine(Icons.info_outline, 'Trạng thái: ${a.status.label}'),
+              _buildInfoLine(
+                Icons.schedule,
+                formatAppointmentTime(a.startTime),
+              ),
+              if (a.stylistName != null)
+                _buildInfoLine(Icons.person_outline, a.stylistName!),
+              _buildInfoLine(
+                Icons.payments_outlined,
+                'Tổng chi phí: ${formatVnd(a.totalPrice)}',
+              ),
+              _buildInfoLine(
+                Icons.info_outline,
+                'Trạng thái: ${a.status.label}',
+              ),
               if (a.isUpcoming) ...[
                 const SizedBox(height: 12),
                 SizedBox(

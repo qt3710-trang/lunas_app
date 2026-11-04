@@ -5,23 +5,23 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/booking_models.dart';
 
-/// Reads only the documents currently used by the Booking screen.
+/// Reads the explicit service documents used by the Booking screen.
 class BookingRepository {
   BookingRepository({FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
-  static const _mainServiceId = 'cat-toc-layer-nu';
-  static const _salonSettingsId = 'main';
+  static const _serviceIds = ['cat-toc-layer-nu', 'uon-tao-kieu'];
   static const _additionalServiceIds = [
     'goi-say-tao-kieu',
     'hap-phuc-hoi-toc',
     'duong-toc-mem-muot',
   ];
+  static const _salonSettingsId = 'main';
 
   final FirebaseFirestore _firestore;
 
   Future<BookingCatalog> loadCatalog() async {
-    final salonSettingsReference = _firestore
+    final settingsReference = _firestore
         .collection('salon_settings')
         .doc(_salonSettingsId);
     developer.log(
@@ -29,43 +29,51 @@ class BookingRepository {
       'loggedIn=${FirebaseAuth.instance.currentUser != null}, '
       'projectId=${_firestore.app.options.projectId}, '
       'databaseId=${_firestore.databaseId}, '
-      'path=${salonSettingsReference.path}',
+      'path=${settingsReference.path}',
       name: 'lunas.booking.firestore',
     );
-    final settingsDocument = await _getDocument(salonSettingsReference);
-
-    final serviceDocuments =
-        await Future.wait<DocumentSnapshot<Map<String, dynamic>>>([
-          _getDocument(_firestore.collection('services').doc(_mainServiceId)),
-          for (final id in _additionalServiceIds)
-            _getDocument(_firestore.collection('additional_services').doc(id)),
-        ]);
-
-    final mainService = BookingService.fromDocument(serviceDocuments.first);
-    if (!mainService.isActive) {
+    final settingsDocument = await _getDocument(settingsReference);
+    if (!settingsDocument.exists) {
       throw const BookingDataException(
-        'Dịch vụ Cắt tóc Layer nữ hiện không hoạt động.',
+        'Không tìm thấy cấu hình salon trên Firestore.',
       );
     }
 
-    final additionalServices = serviceDocuments
-        .skip(1)
-        .take(_additionalServiceIds.length)
-        .map(BookingAdditionalService.fromDocument)
-        .where((service) => service.isActive)
-        .toList(growable: false);
+    final serviceDocuments = await Future.wait([
+      for (final id in _serviceIds)
+        _getDocument(_firestore.collection('services').doc(id)),
+    ]);
+    final additionalServiceDocuments = await Future.wait([
+      for (final id in _additionalServiceIds)
+        _getDocument(_firestore.collection('additional_services').doc(id)),
+    ]);
+
+    final services = [
+      for (final document in serviceDocuments)
+        if (document.exists) BookingService.fromDocument(document),
+    ];
+    final additionalServices = [
+      for (final document in additionalServiceDocuments)
+        if (document.exists) BookingAdditionalService.fromDocument(document),
+    ];
 
     return BookingCatalog(
-      mainService: mainService,
+      services: services,
       additionalServices: additionalServices,
       salonSettings: SalonSettings.fromDocument(settingsDocument),
     );
   }
 
-  /// Saves a booking and returns its Firestore document ID.
+  /// Validates selected Firestore services, checks personal time overlap, then
+  /// writes one booking document and returns its ID.
   Future<String> createBooking({
-    required BookingService mainService,
-    required List<BookingAdditionalService> additionalServices,
+    required BookingMode mode,
+    required BookingService? hairstyleService,
+    required List<BookingLineItem> selectedServices,
+    required String? hairStyleId,
+    required String? hairStyleName,
+    required String? hairStyleColor,
+    required String? hairStyleImageUrl,
     required SalonSettings salonSettings,
     required DateTime date,
     required String time,
@@ -79,11 +87,42 @@ class BookingRepository {
         'Salon hiện đang tạm ngưng nhận đặt lịch.',
       );
     }
+    if (mode == BookingMode.hairstyle &&
+        (hairstyleService == null ||
+            hairStyleId == null ||
+            hairStyleId.trim().isEmpty)) {
+      throw const BookingDataException(
+        'Mẫu tóc chưa được liên kết với dịch vụ salon hợp lệ.',
+      );
+    }
+    if (selectedServices.isEmpty) {
+      throw const BookingDataException('Hãy chọn ít nhất một dịch vụ.');
+    }
+    if (mode == BookingMode.hairstyle &&
+        !selectedServices.any(
+          (service) =>
+              service.collectionName == hairstyleService!.collectionName &&
+              service.id == hairstyleService.id,
+        )) {
+      throw const BookingDataException(
+        'Dịch vụ liên kết với mẫu tóc chưa được chọn để đặt lịch.',
+      );
+    }
 
+    final uniqueKeys = selectedServices
+        .map((service) => '${service.collectionName}/${service.id}')
+        .toSet();
+    if (uniqueKeys.length != selectedServices.length) {
+      throw const BookingDataException('Danh sách dịch vụ bị trùng.');
+    }
+
+    final refreshedServices = await Future.wait(
+      selectedServices.map(_readActiveService),
+    );
     final parts = time.split(':');
     final hour = parts.length == 2 ? int.tryParse(parts[0]) : null;
     final minute = parts.length == 2 ? int.tryParse(parts[1]) : null;
-    if (hour == null || minute == null) {
+    if (hour == null || minute == null || hour > 23 || minute > 59) {
       throw const BookingDataException('Giờ hẹn không hợp lệ.');
     }
 
@@ -93,35 +132,51 @@ class BookingRepository {
         'Giờ hẹn đã qua. Vui lòng chọn giờ khác.',
       );
     }
-
-    final totalPrice =
-        mainService.price +
-        additionalServices.fold<int>(
-          0,
-          (total, service) => total + service.price,
-        );
-    final totalDuration =
-        mainService.durationMinutes +
-        additionalServices.fold<int>(
-          0,
-          (total, service) => total + service.durationMinutes,
-        );
-    if (!salonSettings.startTimesForDuration(totalDuration).contains(time)) {
+    final totalPrice = refreshedServices.fold<int>(
+      0,
+      (total, service) => total + service.price,
+    );
+    final totalDuration = refreshedServices.fold<int>(
+      0,
+      (total, service) => total + service.durationMinutes,
+    );
+    if (totalPrice < 0 ||
+        totalDuration < 1 ||
+        !salonSettings.startTimesForDuration(totalDuration).contains(time)) {
       throw const BookingDataException(
-        'Giờ hẹn không đủ thời lượng trước giờ đóng cửa.',
+        'Tổng giá hoặc thời lượng dịch vụ không hợp lệ với giờ hoạt động.',
       );
     }
 
+    await _ensureNoPersonalOverlap(
+      userId: user.uid,
+      startTime: startTime,
+      durationMinutes: totalDuration,
+    );
+
+    final primaryService = hairstyleService ?? refreshedServices.first;
+    final remainingServices = mode == BookingMode.hairstyle
+        ? refreshedServices
+              .where(
+                (service) =>
+                    service.collectionName != primaryService.collectionName ||
+                    service.id != primaryService.id,
+              )
+              .toList(growable: false)
+        : refreshedServices.skip(1).toList(growable: false);
     final reference = _firestore.collection('bookings').doc();
     final bookingCode =
         '#LUNAS${(DateTime.now().millisecondsSinceEpoch % 1000000).toString().padLeft(6, '0')}';
     final data = <String, dynamic>{
       'userId': user.uid,
       'code': bookingCode,
-      'serviceName': mainService.name,
-      'serviceId': mainService.id,
+      'bookingType': mode.firestoreValue,
+      'serviceName': refreshedServices
+          .map((service) => service.name)
+          .join(' · '),
+      'serviceId': primaryService.id,
       'additionalServices': [
-        for (final service in additionalServices)
+        for (final service in remainingServices)
           {'id': service.id, 'name': service.name, 'price': service.price},
       ],
       'salonName': salonSettings.salonName,
@@ -131,9 +186,17 @@ class BookingRepository {
       'totalPrice': totalPrice,
       'status': 'pending',
       'stylistName': null,
-      'image': '',
+      'image': mode == BookingMode.hairstyle ? hairStyleImageUrl ?? '' : '',
       'createdAt': FieldValue.serverTimestamp(),
     };
+    if (mode == BookingMode.hairstyle) {
+      data.addAll({
+        'hairStyleId': hairStyleId,
+        'hairStyleName': hairStyleName,
+        'hairStyleColor': hairStyleColor,
+        'hairStyleImageUrl': hairStyleImageUrl,
+      });
+    }
 
     developer.log(
       'Booking create started: path=${reference.path}',
@@ -162,12 +225,86 @@ class BookingRepository {
     return reference.id;
   }
 
+  Future<BookingLineItem> _readActiveService(BookingLineItem requested) async {
+    final document = await _getDocument(
+      _firestore.collection(requested.collectionName).doc(requested.id),
+    );
+    final BookingLineItem service = requested.collectionName == 'services'
+        ? BookingService.fromDocument(document)
+        : BookingAdditionalService.fromDocument(document);
+    if (!service.isActive) {
+      throw BookingDataException(
+        'Dịch vụ ${service.name} hiện không hoạt động.',
+      );
+    }
+    return service;
+  }
+
+  Future<void> _ensureNoPersonalOverlap({
+    required String userId,
+    required DateTime startTime,
+    required int durationMinutes,
+  }) async {
+    final QuerySnapshot<Map<String, dynamic>> snapshot;
+    try {
+      snapshot = await _firestore
+          .collection('bookings')
+          .where('userId', isEqualTo: userId)
+          .get();
+    } on FirebaseException catch (error) {
+      if (error.code == 'permission-denied') {
+        throw const BookingDataException(
+          'Không thể kiểm tra lịch cá nhân do Firestore chưa cho phép đọc booking của bạn.',
+        );
+      }
+      rethrow;
+    }
+
+    final endTime = startTime.add(Duration(minutes: durationMinutes));
+    for (final document in snapshot.docs) {
+      final data = document.data();
+      if (data['status'] == 'cancelled') continue;
+      final existingStart = _parseStoredDateTime(data['startTime']);
+      if (existingStart == null || !_sameDate(existingStart, startTime)) {
+        continue;
+      }
+      final existingEnd = _parseStoredDateTime(data['endTime']);
+      final storedDuration = data['totalDurationMinutes'];
+      final int? existingDuration = storedDuration is int && storedDuration > 0
+          ? storedDuration
+          : null;
+      if (existingEnd == null && existingDuration == null) {
+        throw const BookingDataException(
+          'Không thể xác minh thời lượng của một lịch hiện có trong ngày này. Hãy liên hệ salon trước khi đặt tiếp.',
+        );
+      }
+      final resolvedEnd =
+          existingEnd ??
+          existingStart.add(Duration(minutes: existingDuration!));
+      if (startTime.isBefore(resolvedEnd) && existingStart.isBefore(endTime)) {
+        throw const BookingDataException(
+          'Lịch này bị trùng thời gian với một booking đang hoạt động của bạn.',
+        );
+      }
+    }
+  }
+
+  DateTime? _parseStoredDateTime(Object? value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    return null;
+  }
+
+  bool _sameDate(DateTime left, DateTime right) =>
+      left.year == right.year &&
+      left.month == right.month &&
+      left.day == right.day;
+
   Future<DocumentSnapshot<Map<String, dynamic>>> _getDocument(
     DocumentReference<Map<String, dynamic>> reference,
   ) async {
     try {
-      // Read from the server so this diagnostic can distinguish an absent
-      // remote document from a cache-only snapshot.
       final snapshot = await reference.get(
         const GetOptions(source: Source.server),
       );

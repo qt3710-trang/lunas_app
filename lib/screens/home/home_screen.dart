@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/data/booking_draft_store.dart';
 import '../../app/data/hair_style.dart';
 import '../../app/data/hair_style_api.dart' show loadHairStyles;
 import '../../app/theme.dart';
@@ -756,6 +757,9 @@ class _HomeScreenState extends State<HomeScreen> {
           treatment: treatment,
           onBook: () {
             Navigator.of(detailContext).pop();
+            BookingDraftStore.instance.startServiceOnly(
+              selectedServiceId: bookingServiceIdForCareTreatment(treatment.id),
+            );
             context.go('/booking');
           },
         ),

@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 /// Khuôn dữ liệu của một hồ sơ người dùng.
 class UserProfile {
   const UserProfile({
@@ -70,11 +72,7 @@ class UserProfile {
 
 /// Một mẫu tóc người dùng đã bấm tim để lưu.
 class SavedStyle {
-  const SavedStyle({
-    required this.id,
-    required this.name,
-    required this.image,
-  });
+  const SavedStyle({required this.id, required this.name, required this.image});
 
   final String id;
   final String name;
@@ -125,23 +123,35 @@ class Appointment {
     required this.totalPrice,
     required this.status,
     this.stylistName,
+    this.hairStyleName,
+    this.hairStyleColor,
+    this.bookingType = 'legacy',
   });
 
   final String id;
-  final String code;           // ví dụ "#LUNAS1031"
-  final String serviceName;    // ví dụ "Cắt + Nhuộm"
+  final String code; // ví dụ "#LUNAS1031"
+  final String serviceName; // ví dụ "Cắt + Nhuộm"
   final String salonName;
   final String salonAddress;
-  final DateTime startTime;    // ngày giờ hẹn
+  final DateTime startTime; // ngày giờ hẹn
   final String image;
-  final int totalPrice;        // tiền, đơn vị đồng
+  final int totalPrice; // tiền, đơn vị đồng
   final AppointmentStatus status;
-  final String? stylistName;   // có thể không có
+  final String? stylistName; // có thể không có
+  final String? hairStyleName;
+  final String? hairStyleColor;
+  final String bookingType;
+
+  String get displayServiceName =>
+      hairStyleName == null || hairStyleName!.isEmpty
+      ? serviceName
+      : '$hairStyleName · $serviceName';
 
   /// Lịch sắp tới = chưa tới giờ VÀ chưa hủy, chưa xong.
   bool get isUpcoming {
     final notYet = startTime.isAfter(DateTime.now());
-    final active = status == AppointmentStatus.pending ||
+    final active =
+        status == AppointmentStatus.pending ||
         status == AppointmentStatus.confirmed;
     return notYet && active;
   }
@@ -157,23 +167,63 @@ class Appointment {
       image: image,
       totalPrice: totalPrice,
       stylistName: stylistName,
+      hairStyleName: hairStyleName,
+      hairStyleColor: hairStyleColor,
+      bookingType: bookingType,
       status: status ?? this.status,
     );
   }
 
   /// Bài 8: đọc từ collection 'bookings' (do phần Đặt lịch ghi vào).
   factory Appointment.fromMap(String id, Map<String, dynamic> map) {
+    DateTime parseDate(Object? raw) {
+      if (raw is Timestamp) return raw.toDate();
+      if (raw is DateTime) return raw;
+      if (raw is int) return DateTime.fromMillisecondsSinceEpoch(raw);
+      if (raw is num) return DateTime.fromMillisecondsSinceEpoch(raw.toInt());
+      return DateTime.fromMillisecondsSinceEpoch(0);
+    }
+
+    final services = map['services'];
+    final fallbackNames = services is List
+        ? services
+              .whereType<Map>()
+              .map((item) => item['name'])
+              .whereType<String>()
+              .where((name) => name.trim().isNotEmpty)
+              .join(' · ')
+        : '';
+    final rawPrice = map['totalPrice'];
     return Appointment(
       id: id,
-      code: map['code'] ?? '',
-      serviceName: map['serviceName'] ?? '',
-      salonName: map['salonName'] ?? '',
-      salonAddress: map['salonAddress'] ?? '',
-      startTime: DateTime.fromMillisecondsSinceEpoch(map['startTime'] ?? 0),
-      image: map['image'] ?? '',
-      totalPrice: map['totalPrice'] ?? 0,
-      status: AppointmentStatus.fromName(map['status']),
-      stylistName: map['stylistName'],
+      code: map['code'] is String ? map['code'] as String : '',
+      serviceName:
+          map['serviceName'] is String &&
+              (map['serviceName'] as String).trim().isNotEmpty
+          ? map['serviceName'] as String
+          : fallbackNames,
+      salonName: map['salonName'] is String ? map['salonName'] as String : '',
+      salonAddress: map['salonAddress'] is String
+          ? map['salonAddress'] as String
+          : '',
+      startTime: parseDate(map['startTime']),
+      image: map['hairStyleImageUrl'] is String
+          ? map['hairStyleImageUrl'] as String
+          : (map['image'] is String ? map['image'] as String : ''),
+      totalPrice: rawPrice is num ? rawPrice.toInt() : 0,
+      status: AppointmentStatus.fromName(map['status'] as String?),
+      stylistName: map['stylistName'] is String
+          ? map['stylistName'] as String
+          : null,
+      hairStyleName: map['hairStyleName'] is String
+          ? map['hairStyleName'] as String
+          : null,
+      hairStyleColor: map['hairStyleColor'] is String
+          ? map['hairStyleColor'] as String
+          : null,
+      bookingType: map['bookingType'] is String
+          ? map['bookingType'] as String
+          : 'legacy',
     );
   }
 }
@@ -206,6 +256,6 @@ String formatVnd(int amount) {
 class AiSuggestion {
   const AiSuggestion({required this.style, required this.reason});
 
-  final SavedStyle style;   // dùng lại khuôn SavedStyle để lưu được luôn
-  final String reason;      // ví dụ "Hợp vibe Thanh lịch khi đi làm..."
+  final SavedStyle style; // dùng lại khuôn SavedStyle để lưu được luôn
+  final String reason; // ví dụ "Hợp vibe Thanh lịch khi đi làm..."
 }
